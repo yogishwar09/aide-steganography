@@ -11,3 +11,5 @@ pytest>=7.4
 requests>=2.31
 psutil
 joblib
+flask>=3.0
+

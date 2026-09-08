@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIDE — Secure Comms &amp; Threat Detection</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #121826;
+    --panel-2: #182236;
+    --border: #253247;
+    --text: #dde6f0;
+    --text-dim: #8a99ad;
+    --accent: #3fd0c9;
+    --accent-2: #5b8cff;
+    --warn: #e8b339;
+    --danger: #ef5a5a;
+    --ok: #4fd67a;
+    --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 19px; margin: 0; letter-spacing: 0.02em; }
+  header h1 span { color: var(--accent); }
+  header .sub { color: var(--text-dim); font-size: 13px; }
+  .badge {
+    font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 3px;
+    background: #1c2a3f; color: var(--accent); border: 1px solid var(--border);
+  }
+
+  .tabs { display: flex; gap: 2px; padding: 0 28px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .tab {
+    padding: 14px 22px; cursor: pointer; color: var(--text-dim); font-size: 14px;
+    border-bottom: 2px solid transparent; user-select: none;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  .page { display: none; padding: 28px; max-width: 1100px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 22px; margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-dim); margin: 0 0 16px 0; font-weight: 600;
+  }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 240px; }
+
+  label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; margin-top: 14px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 11px; border-radius: 6px; font-size: 13.5px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 64px; font-family: var(--mono); }
+  input[type=file] { color: var(--text-dim); font-size: 13px; }
+
+  button {
+    background: var(--accent); color: #05201d; border: none; padding: 10px 18px;
+    border-radius: 6px; font-size: 13.5px; font-weight: 600; cursor: pointer; margin-top: 16px;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--danger); color: #2a0505; }
+
+  .imgbox {
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #000;
+    display: flex; align-items: center; justify-content: center; min-height: 160px;
+  }
+  .imgbox img { max-width: 100%; display: block; }
+  .imgbox .placeholder { color: var(--text-dim); font-size: 12.5px; padding: 30px; text-align: center; }
+  .imgcaption { font-size: 12px; color: var(--text-dim); margin-top: 6px; text-align: center; }
+
+  .metrics { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+  .metric { background: var(--panel-2); border-radius: 8px; padding: 12px 16px; min-width: 100px; }
+  .metric .value { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+  .metric .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .verdict {
+    display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: 700;
+    font-size: 15px; letter-spacing: 0.02em; margin-bottom: 4px;
+  }
+  .verdict.clean { background: rgba(79,214,122,0.15); color: var(--ok); border: 1px solid var(--ok); }
+  .verdict.suspicious { background: rgba(232,179,57,0.15); color: var(--warn); border: 1px solid var(--warn); }
+  .verdict.likely_steganographic { background: rgba(239,90,90,0.15); color: var(--danger); border: 1px solid var(--danger); }
+
+  .gauge-track { background: var(--panel-2); border-radius: 6px; height: 10px; overflow: hidden; margin-top: 8px; }
+  .gauge-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+
+  .bandbars { display: flex; gap: 3px; align-items: flex-end; height: 60px; margin-top: 10px; }
+  .bandbar { flex: 1; background: var(--accent-2); border-radius: 2px 2px 0 0; min-height: 2px; }
+
+  .status-line { font-family: var(--mono); font-size: 12.5px; padding: 10px 14px; border-radius: 6px; margin-top: 14px; }
+  .status-line.ok { background: rgba(79,214,122,0.1); color: var(--ok); border: 1px solid rgba(79,214,122,0.3); }
+  .status-line.err { background: rgba(239,90,90,0.1); color: var(--danger); border: 1px solid rgba(239,90,90,0.3); }
+  .status-line.info { background: rgba(91,140,255,0.1); color: var(--accent-2); border: 1px solid rgba(91,140,255,0.3); }
+
+  .msgbox {
+    font-family: var(--mono); background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px; margin-top: 10px; white-space: pre-wrap; word-break: break-word;
+    font-size: 13.5px;
+  }
+
+  .disclaimer {
+    font-size: 12px; color: var(--text-dim); line-height: 1.5; padding: 14px 16px;
+    background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;
+  }
+  .disclaimer a, .disclaimer code { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px; }
+
+  .spinner {
+    display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px;
+    vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>AIDE</span> Command Console</h1>
+  <span class="sub">Adaptive Intelligent Dynamic Embedding — secure comms &amp; steganalysis</span>
+  <span class="badge">LOCAL · NOT CONNECTED TO NETWORK</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-page="operator">🛰 Operator — Secure Communication</div>
+  <div class="tab" data-page="analyst">🔍 Analyst — Threat Detection</div>
+</div>
+
+<!-- ============ OPERATOR PAGE ============ -->
+<div class="page active" id="page-operator">
+  <div class="disclaimer">
+    <strong>Operator mode.</strong> Embed an encrypted message into a cover image (AES-256-GCM + Reed-Solomon
+    ECC + adaptive LSB/DCT/DWT embedding), simulate an interception attack, and confirm recovery.
+    See <code>README.md</code> for what's measured to actually survive which attacks.
+  </div>
+
+  <div class="card">
+    <h2>1 · Embed</h2>
+    <div class="row">
+      <div class="col">
+        <label>Cover image</label>
+        <input type="file" id="coverFile" accept="image/*">
+        <label>Secret message</label>
+        <textarea id="messageText">CLASSIFIED SITREP: Convoy Alpha departs staging area 0600Z, route Bravo-7. Escort confirmed, rendezvous at checkpoint Delta.</textarea>
+        <label>Shared secret (key material)</label>
+        <input type="password" id="secretKey" value="defence-shared-secret-2026">
+        <button id="btnEmbed">Embed message</button>
+        <div id="embedStatus"></div>
+      </div>
+      <div class="col">
+        <div class="imgbox" id="coverPreviewBox"><div class="placeholder">Cover image preview</div></div>
+        <div class="imgcaption">Cover (original)</div>
+      </div>
+      <div class="col">
+        <div class="imgbox" id="stegoPreviewBox"><div class="placeholder">Stego image will appear here</div></div>
+        <div class="imgcaption">Stego (message embedded)</div>
+      </div>
+    </div>
+    <div class="metrics hidden" id="embedMetrics"></div>
+  </div>
+
+  <div class="card hidden" id="attackCard">
+    <h2>2 · Simulate interception attack (optional)</h2>
+    <div class="row">
+      <div class="col">
+        <label>Attack type</label>
+        <select id="attackType"></select>
+        <label>Parameters (JSON, optional)</label>
+        <input type="text" id="attackParams" placeholder='{"quality": 50}'>
+        <button id="btnAttack" class="secondary">Apply attack</button>
+        <div id="attackStatus"></div>
+      </div>
+      <div class="col">
+        <div class="imgbox" id="attackedPreviewBox"><div class="placeholder">Attacked image will appear here</div></div>
+        <div class="imgcaption">After attack</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="recoverCard">
+    <h2>3 · Recover</h2>
+    <div class="row">
+      <div class="col">
+        <button id="btnRecoverStego">Recover from stego (no attack)</button>
+        <button id="btnRecoverAttacked" class="secondary hidden">Recover from attacked image</button>
+      </div>
+      <div class="col" style="flex:2">
+        <div id="recoverStatus"></div>
+        <div class="msgbox hidden" id="recoveredMessage"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ANALYST PAGE ============ -->
+<div class="page" id="page-analyst">
+  <div class="disclaimer">
+    <strong>Analyst mode — blind steganalysis.</strong> Upload any intercepted image. No secret, no sidecar,
+    no assumption about how (or whether) it was modified. Uses the classical chi-square pairs-of-values
+    attack plus corroborating LSB signals — see <code>aide/steganalysis.py</code> for the measured false-positive
+    rate (1/40 on clean images) and honest limits (naive spatial LSB only; AIDE's own adaptive stego evades this
+    specific detector).
+  </div>
+
+  <div class="card">
+    <h2>Analyze an image</h2>
+    <div class="row">
+      <div class="col">
+        <label>Suspect image</label>
+        <input type="file" id="detectFile" accept="image/*">
+        <button id="btnDetect">Analyze</button>
+        <div id="detectStatus"></div>
+      </div>
+      <div class="col">
+        <div class="imgbox" id="detectPreviewBox"><div class="placeholder">Image preview</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="detectResultCard">
+    <h2>Threat assessment</h2>
+    <div id="verdictBox"></div>
+    <div class="row" style="margin-top:18px">
+      <div class="col">
+        <label style="margin-top:0">Chi-square p-value (primary signal)</label>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeChi" style="background:var(--accent)"></div></div>
+        <label>LSB / next-bit-plane correlation (corroborating)</label>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeCorr" style="background:var(--accent-2)"></div></div>
+        <label>LSB bit-balance deviation (weak signal)</label>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeBalance" style="background:var(--warn)"></div></div>
+      </div>
+      <div class="col">
+        <label style="margin-top:0">Row-band profile (diagnostic only — not part of verdict)</label>
+        <div class="bandbars" id="bandBars"></div>
+        <div class="imgcaption">Chi-square p per horizontal band — high bands hint at *where*, but individual bands are noisy (see README)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('page-' + tab.dataset.page).classList.add('active');
+  });
+});
+
+function statusLine(el, kind, text) {
+  el.innerHTML = `<div class="status-line ${kind}">${text}</div>`;
+}
+function showImage(box, dataUrl) {
+  box.innerHTML = `<img src="${dataUrl}">`;
+}
+function fileToDataUrl(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Operator: Embed ----------
+let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null };
+
+$('coverFile').addEventListener('change', async (e) => {
+  if (e.target.files[0]) showImage($('coverPreviewBox'), await fileToDataUrl(e.target.files[0]));
+});
+
+$('btnEmbed').addEventListener('click', async () => {
+  const file = $('coverFile').files[0];
+  const message = $('messageText').value;
+  const secret = $('secretKey').value;
+  if (!file || !message || !secret) {
+    statusLine($('embedStatus'), 'err', 'Cover image, message, and shared secret are all required.');
+    return;
+  }
+  $('btnEmbed').disabled = true;
+  statusLine($('embedStatus'), 'info', '<span class="spinner"></span>Embedding...');
+
+  const form = new FormData();
+  form.append('cover', file);
+  form.append('message', message);
+  form.append('secret', secret);
+
+  try {
+    const res = await fetch('/api/embed', { method: 'POST', body: form });
+    const data = await res.json();
+    $('btnEmbed').disabled = false;
+    if (!res.ok) { statusLine($('embedStatus'), 'err', data.error || 'Embedding failed.'); return; }
+
+    state.stegoB64 = data.stego_b64;
+    state.sidecar = data.sidecar;
+    state.secret = secret;
+    state.attackedB64 = null;
+
+    showImage($('stegoPreviewBox'), 'data:image/png;base64,' + data.stego_b64);
+    statusLine($('embedStatus'), 'ok', `Embedded ${data.message_bytes} bytes into ${data.blocks_used} blocks (${data.mode} mode).`);
+
+    const methodStr = Object.entries(data.method_breakdown).map(([m,p]) => `${m} ${p}%`).join(' · ');
+    $('embedMetrics').classList.remove('hidden');
+    $('embedMetrics').innerHTML = `
+      <div class="metric"><div class="value">${data.psnr_db.toFixed(1)} dB</div><div class="label">PSNR</div></div>
+      <div class="metric"><div class="value">${data.ssim.toFixed(4)}</div><div class="label">SSIM</div></div>
+      <div class="metric"><div class="value">${data.payload_bytes} B</div><div class="label">RS-encoded payload</div></div>
+      <div class="metric"><div class="value" style="font-size:13px">${methodStr}</div><div class="label">method mix</div></div>
+    `;
+
+    $('attackCard').classList.remove('hidden');
+    $('recoverCard').classList.remove('hidden');
+    $('attackedPreviewBox').innerHTML = '<div class="placeholder">Attacked image will appear here</div>';
+    $('recoveredMessage').classList.add('hidden');
+    $('btnRecoverAttacked').classList.add('hidden');
+    statusLine($('recoverStatus'), 'info', '');
+  } catch (err) {
+    $('btnEmbed').disabled = false;
+    statusLine($('embedStatus'), 'err', 'Request failed: ' + err);
+  }
+});
+
+// ---------- Operator: Attack types ----------
+fetch('/api/attack-types').then(r => r.json()).then(types => {
+  const sel = $('attackType');
+  sel.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+});
+
+$('btnAttack').addEventListener('click', async () => {
+  if (!state.stegoB64) return;
+  let params = {};
+  const raw = $('attackParams').value.trim();
+  if (raw) {
+    try { params = JSON.parse(raw); }
+    catch { statusLine($('attackStatus'), 'err', 'Parameters must be valid JSON.'); return; }
+  }
+  $('btnAttack').disabled = true;
+  statusLine($('attackStatus'), 'info', '<span class="spinner"></span>Applying attack...');
+
+  try {
+    const res = await fetch('/api/attack', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stego_b64: state.stegoB64, type: $('attackType').value, params }),
+    });
+    const data = await res.json();
+    $('btnAttack').disabled = false;
+    if (!res.ok) { statusLine($('attackStatus'), 'err', data.error || 'Attack failed.'); return; }
+
+    state.attackedB64 = data.attacked_b64;
+    showImage($('attackedPreviewBox'), 'data:image/png;base64,' + data.attacked_b64);
+    statusLine($('attackStatus'), 'ok', 'Attack applied. Try recovering from the attacked image below.');
+    $('btnRecoverAttacked').classList.remove('hidden');
+  } catch (err) {
+    $('btnAttack').disabled = false;
+    statusLine($('attackStatus'), 'err', 'Request failed: ' + err);
+  }
+});
+
+// ---------- Operator: Recover ----------
+async function doRecover(imageB64) {
+  statusLine($('recoverStatus'), 'info', '<span class="spinner"></span>Recovering...');
+  $('recoveredMessage').classList.add('hidden');
+  try {
+    const res = await fetch('/api/recover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64: imageB64, sidecar: state.sidecar, secret: state.secret }),
+    });
+    const data = await res.json();
+    if (!res.ok) { statusLine($('recoverStatus'), 'err', data.error || 'Recovery failed.'); return; }
+
+    if (data.success) {
+      statusLine($('recoverStatus'), 'ok', `Recovery succeeded (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
+      $('recoveredMessage').textContent = data.message;
+      $('recoveredMessage').classList.remove('hidden');
+    } else {
+      statusLine($('recoverStatus'), 'err', `Recovery FAILED: ${data.error} (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
+    }
+  } catch (err) {
+    statusLine($('recoverStatus'), 'err', 'Request failed: ' + err);
+  }
+}
+$('btnRecoverStego').addEventListener('click', () => state.stegoB64 && doRecover(state.stegoB64));
+$('btnRecoverAttacked').addEventListener('click', () => state.attackedB64 && doRecover(state.attackedB64));
+
+// ---------- Analyst: Detect ----------
+$('detectFile').addEventListener('change', async (e) => {
+  if (e.target.files[0]) showImage($('detectPreviewBox'), await fileToDataUrl(e.target.files[0]));
+});
+
+$('btnDetect').addEventListener('click', async () => {
+  const file = $('detectFile').files[0];
+  if (!file) { statusLine($('detectStatus'), 'err', 'Choose an image first.'); return; }
+
+  $('btnDetect').disabled = true;
+  statusLine($('detectStatus'), 'info', '<span class="spinner"></span>Analyzing...');
+
+  const form = new FormData();
+  form.append('image', file);
+
+  try {
+    const res = await fetch('/api/detect', { method: 'POST', body: form });
+    const data = await res.json();
+    $('btnDetect').disabled = false;
+    if (!res.ok) { statusLine($('detectStatus'), 'err', data.error || 'Analysis failed.'); return; }
+
+    statusLine($('detectStatus'), 'ok', 'Analysis complete.');
+    $('detectResultCard').classList.remove('hidden');
+
+    const verdictLabels = {
+      clean: '✓ CLEAN — no evidence of hidden data',
+      suspicious: '⚠ SUSPICIOUS — some anomalous signal',
+      likely_steganographic: '⛔ LIKELY STEGANOGRAPHIC — strong evidence of hidden data',
+    };
+    $('verdictBox').innerHTML = `<div class="verdict ${data.verdict}">${verdictLabels[data.verdict]}</div>
+      <div class="imgcaption" style="text-align:left;margin-top:8px">Combined suspicion score: <strong>${data.suspicion_score.toFixed(3)}</strong> / 1.0</div>`;
+
+    $('gaugeChi').style.width = (data.chi_square_p * 100).toFixed(1) + '%';
+    const corrSignal = Math.max(0, 1 - Math.abs(data.lsb_correlation) / 0.15);
+    $('gaugeCorr').style.width = (corrSignal * 100).toFixed(1) + '%';
+    const balSignal = Math.max(0, 1 - data.lsb_bit_balance / 0.05);
+    $('gaugeBalance').style.width = (balSignal * 100).toFixed(1) + '%';
+
+    $('bandBars').innerHTML = data.row_band_profile.map(p =>
+      `<div class="bandbar" style="height:${Math.max(2, p*100)}%" title="p=${p.toFixed(3)}"></div>`
+    ).join('');
+  } catch (err) {
+    $('btnDetect').disabled = false;
+    statusLine($('detectStatus'), 'err', 'Request failed: ' + err);
+  }
+});
+</script>
+</body>
+</html>
