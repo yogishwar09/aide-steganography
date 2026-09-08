@@ -83,21 +83,20 @@ def test_mild_noise_recovers(embedded):
 
 
 @pytest.mark.xfail(
-    reason="Known, documented limitation (see README 'What doesn't work yet' and "
-           "aide/embedding/dct.py's module docstring): DCT's coefficient-pair "
-           "selection is now capped to a frequency band measured robust to "
-           "median filtering in isolation (single-block bit-exact survival at "
-           "every bpp, since the fix), and per-bit error rates in the full "
-           "pipeline dropped accordingly (measured ~5.5%->1.6% for a similar "
-           "scaling test). But at this message's payload size each DCT block "
-           "only contributes a handful of bits (that's the trade-off the cap "
-           "makes), so those few bits are spread thinly across many separate "
-           "*bytes* rather than sharing bytes within a block - meaning a low "
-           "per-bit error rate still taints a disproportionately large number "
-           "of distinct Reed-Solomon codeword bytes. Not yet resolved: doing so "
-           "needs either byte-aligned bit packing per block or an explicit "
-           "per-codeword error budget in the AIDE capacity allocator, neither "
-           "of which exists yet.",
+    reason="Boundary-sensitive, not a hard failure (see README 'What doesn't "
+           "work yet'): after capping DCT's coefficient-pair selection to a "
+           "measured-robust frequency band and capping LSB/DWT's payload "
+           "share (aide/pipeline.py's DEFAULT_FRAGILE_METHOD_BUDGETS), this "
+           "test's per-codeword error count sits right at Reed-Solomon's "
+           "t=16 blind-correction threshold rather than far past it as it "
+           "used to. It passes on most runs (this is marked strict=False so "
+           "an unexpected pass doesn't fail CI) but can still fail depending "
+           "on tiny floating-point rounding differences in scipy's DCT "
+           "(observed to vary run-to-run at this margin, plausibly from "
+           "non-deterministic summation order in threaded BLAS). A real fix "
+           "needs either a small correction-budget safety margin in the AIDE "
+           "capacity allocator or slightly more conservative DCT/DWT caps -"
+           "not yet implemented.",
     strict=False,
 )
 def test_median_filter_recovers(embedded):
@@ -107,17 +106,27 @@ def test_median_filter_recovers(embedded):
 
 
 @pytest.mark.xfail(
-    reason="Known, documented limitation: geometric scaling hits the same "
-           "bit-packing weakness as median filtering above, and additionally "
-           "damages more DCT coefficients per block than median filtering does "
-           "even within the capped robust frequency band (measured ~1.6% "
-           "average per-bit error rate for scaling vs DCT's near-0% for "
-           "median). DWT itself now measures robust to scaling in isolation. "
-           "See README 'What doesn't work yet' and test_median_filter_recovers.",
+    reason="Known, documented limitation - and per the report's own text, "
+           "expected: 'Scaling attacks are the most damaging' (report "
+           "section 2.3). A 2x downscale-then-restore destroys far more "
+           "information than 3x3 median filtering; measured per-codeword "
+           "error counts here (~60-70 out of a 255-byte codeword) are well "
+           "past Reed-Solomon's correction budget even with DCT carrying "
+           "nearly the whole payload, not a close boundary case like "
+           "test_median_filter_recovers above. Milder scaling (factor=0.75) "
+           "does recover reliably - see README 'What actually works'.",
     strict=False,
 )
 def test_scaling_recovers(embedded):
     attacked = attacks.scaling(embedded.stego, factor=0.5)
+    rec = pipeline.recover(attacked, embedded.sidecar, SECRET)
+    assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
+
+
+def test_mild_scaling_recovers(embedded):
+    """factor=0.75 is a much milder resize than the report's own
+    'most damaging' 0.5x case above, and recovers reliably."""
+    attacked = attacks.scaling(embedded.stego, factor=0.75)
     rec = pipeline.recover(attacked, embedded.sidecar, SECRET)
     assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
 

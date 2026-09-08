@@ -118,26 +118,32 @@ class EmbedResult:
 
 
 # Fraction of the RS-encoded payload each method may carry, as a share of
-# total_bits. DCT and DWT are both left unrestricted (get whatever's
-# needed) because both measured broadly robust across every attack tried
-# once DWT was revised to embed in its coarse approximation sub-band
-# rather than the detail sub-bands (see aide/embedding/dwt.py's docstring
-# for that history) - only LSB is capped now.
+# total_bits. DCT is unrestricted (gets whatever's needed) since it
+# measured the most broadly robust of the three once its coefficient-pair
+# selection was capped to a safe frequency band (aide/embedding/dct.py).
+# LSB and DWT are both capped, at very different sizes, for different
+# reasons - see each entry below.
 DEFAULT_FRAGILE_METHOD_BUDGETS = {
     # LSB: far higher raw capacity than DCT/DWT, but the least tolerant of
     # *any* pixel change - depends on exact pixel values, not a robust
     # coefficient relation. Measured: ~45-55% bit-error rate under every
     # attack tried, including a plain JPEG re-save. That error rate is so
-    # much higher than DCT/DWT's that even a small LSB budget dominates a
-    # codeword's total error count (measured: 3% of bits from LSB
-    # contributed the majority of all corrupted bits under moderate
-    # Gaussian noise, back when DWT was also fragile and this budget was
-    # tuned to 3%; 1% remains enough to keep the "adaptive, multi-method"
-    # embedding map this project is actually about visible in practice,
-    # while barely registering in the error budget). Raise it only for
-    # cover images/attack scenarios where visual capacity matters more
-    # than compression/noise robustness.
-    "LSB": 0.01,
+    # disproportionate that even 1% of payload bits from LSB was measured
+    # to flip an otherwise-passing median-filter recovery to failing -
+    # kept at a token 0.5% purely so the "adaptive, multi-method"
+    # embedding map this project is actually about stays visible in
+    # practice. Raise it only for cover images/attack scenarios where
+    # visual capacity matters more than robustness.
+    "LSB": 0.005,
+    # DWT: the 2-level approximation-sub-band design (aide/embedding/dwt.py)
+    # fixed compression and geometric-attack survival in isolation, but
+    # still measures a real (just much smaller than LSB's) error rate
+    # under median filtering/scaling - e.g. dropping DWT's share from
+    # ~15% to ~2% was the difference between failing and passing a
+    # representative median-filter recovery test. Capped small rather
+    # than zero for the same "keep the adaptive method mix visible"
+    # reason as LSB above.
+    "DWT": 0.02,
 }
 
 

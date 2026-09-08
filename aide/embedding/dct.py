@@ -51,10 +51,23 @@ DELTA = 40.0
 
 
 def _max_robust_pairs(block_size: int) -> int:
-    """Conservative caps from the measurements in the module docstring:
-    16x16 -> 12 (measured-safe boundary was 13), 8x8 -> 3 (measured-safe
-    boundary was 4). Scales as block_size**2 // 20 in between/beyond."""
-    return max(1, (block_size * block_size) // 20)
+    """16x16 -> 16, 8x8 -> 4. Scales as block_size**2 // 16.
+
+    Not the tightest cap that measured 100% single-block survival (13 for
+    16x16) - empirically, going that conservative makes each block's
+    contribution so small (often under one byte) that Reed-Solomon's
+    byte-level granularity amplifies even a low per-bit error rate: nearly
+    every wrong bit ends up alone in its own codeword byte instead of
+    sharing one with another wrong bit from the same block, so a bad
+    block "costs" close to its full byte-count in RS budget regardless of
+    how few of its bits were actually wrong. A slightly larger cap trades
+    a modest amount of single-block-isolation robustness (16 pairs
+    measured ~17-20/20 rather than 13's 20/20) for meaningfully more bits
+    sharing bytes within each block, which measured better in the full
+    pipeline. See aide/embedding/dct.py's module docstring and
+    tests/test_attacks_recovery.py's xfail reasons for the measurement
+    trail behind this number."""
+    return max(1, (block_size * block_size) // 16)
 
 
 def _dct2(block: np.ndarray) -> np.ndarray:
