@@ -54,6 +54,16 @@ metrics table):
 python scripts/demo.py
 ```
 
+Or launch the local web console (a clickable UI over the same code, with
+both an Operator/secure-comms mode and an Analyst/threat-detection mode
+— see [Web console](#web-console) below):
+
+```bash
+python webapp/app.py
+```
+
+then open the URL it prints (defaults to http://127.0.0.1:5050).
+
 Run the test suite:
 
 ```bash
@@ -76,6 +86,40 @@ aide train --images data/samples --out data/models
 sidecar carrying the per-block embedding map, tamper-reference hashes, RS
 parameters, and the AES-GCM nonce. See [Side-channel
 metadata](#side-channel-metadata-the-sidecar-file) for why this exists.
+
+## Web console
+
+```bash
+python webapp/app.py
+```
+
+A local, single-page web UI (`webapp/app.py` + `webapp/templates/index.html`)
+over the exact same `aide` package the CLI uses - every button is a thin
+HTTP wrapper around an `aide.pipeline`/`aide.steganalysis` call, no
+independent logic of its own. Two modes, matching this project's two
+defence/intelligence sides:
+
+- **Operator — Secure Communication**: upload a cover image, type a
+  message and shared secret, embed, optionally simulate an interception
+  attack, and recover - all in the browser, with PSNR/SSIM/method-mix
+  metrics and the same attack list `aide attack` exposes.
+- **Analyst — Threat Detection**: upload any image and run blind
+  steganalysis (`aide detect`) - verdict, suspicion score, per-signal
+  breakdown, and the row-band diagnostic plot, with the same measured
+  false-positive/detection-rate story documented above.
+
+Stateless by design: the Flask backend holds no session - the browser
+keeps the stego image and sidecar (as base64/JSON) between steps and
+POSTs back whatever the next endpoint needs, and the server only ever
+touches disk via short-lived temp files (`aide.pipeline`'s functions need
+a file path for the image-bound key derivation - see
+`aide/crypto.py`) that are deleted after each request. Local only (Flask's
+built-in dev server, `debug=True`) - not hardened for exposure to a
+network; see the warning it prints on startup.
+
+Tested the same way as everything else: `tests/test_webapp.py` drives
+the Flask app via its test client (no live server needed) through the
+full embed → attack → recover workflow and both detection cases.
 
 ## Architecture
 
