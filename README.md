@@ -242,10 +242,13 @@ don't assume" rule:
   enough to span multiple codewords (roughly 200+ plaintext bytes) to see
   the interleaving defense actually do something; `aide evaluate` and
   `scripts/demo.py` default to one for this reason.
-- **Trained on 300 real BOSSbase images**, not the report's 80,000+-image
-  ALASKA2 corpus. `aide train --images <dir> --max-images N` accepts any
-  local image folder — point it at a larger dataset to improve on these
-  numbers.
+- **Trained on 334 real BOSSbase images (~342,000 blocks)**, not the
+  report's 80,000+-image ALASKA2 corpus. Training is fast and scales
+  roughly linearly (measured: 20s at 50,000 blocks -> 0.875 validation
+  accuracy, 2.5 minutes at the full ~342k -> 0.877) - `aide train
+  --images <dir> --max-images N --max-blocks N` accepts any local image
+  folder, so fetching more BOSSbase images (or pointing at ALASKA2/your
+  own images) is a data problem now, not a code change.
 
 ## Technology stack
 
