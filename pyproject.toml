@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aide"
+version = "0.1.0"
+description = "AIDE - Adaptive Intelligent Dynamic Embedding Framework for secure image steganography"
+requires-python = ">=3.9"
+
+[project.scripts]
+aide = "aide.cli:main"
+
+[tool.setuptools]
+packages = ["aide", "aide.embedding"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

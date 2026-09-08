@@ -1,0 +1,13 @@
+opencv-python-headless>=4.8
+scikit-learn>=1.3
+numpy>=1.24
+pycryptodome>=3.19
+reedsolo>=1.7
+scipy>=1.11
+PyWavelets>=1.4
+Pillow>=10.0
+scikit-image>=0.21
+pytest>=7.4
+requests>=2.31
+psutil
+joblib
