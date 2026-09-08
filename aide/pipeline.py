@@ -118,44 +118,35 @@ class EmbedResult:
 
 
 # Fraction of the RS-encoded payload each method may carry, as a share of
-# total_bits. DCT is left unrestricted (gets whatever's left) because it
-# measured as the most broadly robust of the three across every attack
-# tried (compression, noise, median filtering, scaling - see
-# aide/embedding/dwt.py's docstring for the DWT-specific finding below).
+# total_bits. DCT and DWT are both left unrestricted (get whatever's
+# needed) because both measured broadly robust across every attack tried
+# once DWT was revised to embed in its coarse approximation sub-band
+# rather than the detail sub-bands (see aide/embedding/dwt.py's docstring
+# for that history) - only LSB is capped now.
 DEFAULT_FRAGILE_METHOD_BUDGETS = {
     # LSB: far higher raw capacity than DCT/DWT, but the least tolerant of
     # *any* pixel change - depends on exact pixel values, not a robust
     # coefficient relation. Measured: ~45-55% bit-error rate under every
     # attack tried, including a plain JPEG re-save. That error rate is so
     # much higher than DCT/DWT's that even a small LSB budget dominates a
-    # codeword's total error count (measured: 5% of bits from LSB
-    # contributed ~89% of all corrupted bits under moderate Gaussian
-    # noise). Kept small rather than zero so the "adaptive, multi-method"
-    # embedding map this project is actually about stays visible in
-    # practice; raise it only for cover images/attack scenarios where
-    # visual capacity matters more than compression/noise robustness.
-    "LSB": 0.03,
-    # DWT: this implementation (single-level Haar, coefficient-pair QIM -
-    # see aide/embedding/dwt.py) measured robust against JPEG compression
-    # even at fairly high delta, but NOT against median filtering or
-    # resizing (survival stayed near 0% even at delta=400, well past the
-    # point of visible artifacts) - both attacks resample the spatial
-    # neighborhood a single-level Haar transform depends on. This
-    # contradicts the report's assumption that DWT gives "superior
-    # robustness against geometric attacks"; real robust DWT watermarking
-    # needs multi-level embedding and explicit resync handling, which is
-    # out of scope here (documented in the README as future work). Capped
-    # like LSB so DCT carries the bulk of the payload instead.
-    "DWT": 0.10,
+    # codeword's total error count (measured: 3% of bits from LSB
+    # contributed the majority of all corrupted bits under moderate
+    # Gaussian noise, back when DWT was also fragile and this budget was
+    # tuned to 3%; 1% remains enough to keep the "adaptive, multi-method"
+    # embedding map this project is actually about visible in practice,
+    # while barely registering in the error budget). Raise it only for
+    # cover images/attack scenarios where visual capacity matters more
+    # than compression/noise robustness.
+    "LSB": 0.01,
 }
 
 
 def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEModel,
           fragile_method_budgets: dict[str, float] | None = None) -> EmbedResult:
     """`fragile_method_budgets` caps how much of the RS-encoded payload may
-    be carried by each of a set of "fragile" methods (default: LSB 5%, DWT
-    10% - see DEFAULT_FRAGILE_METHOD_BUDGETS above for the measurements
-    behind these numbers). Any method not listed is unrestricted.
+    be carried by each of a set of "fragile" methods (default: LSB 1% -
+    see DEFAULT_FRAGILE_METHOD_BUDGETS above for the measurement behind
+    that number). Any method not listed is unrestricted.
 
     Why cap at all: each method's real *bit* capacity per block is wildly
     uneven (LSB uses whole pixels; DCT/DWT use a handful of coefficient

@@ -5,6 +5,21 @@ coefficients (skipping the DC/low-frequency energy and the noisiest high
 frequencies) are modified in pairs using relative-magnitude QIM, which
 survives JPEG-style requantization better than raw coefficient LSB
 substitution - matching the report's claim of inherent JPEG resilience.
+
+Known trade-off (measured, not yet resolved): `_select_pairs` walks the
+mid-frequency zigzag band low-to-high, so bpp=1 only touches its lowest,
+most robust end while bpp=4 reaches further into higher, less robust
+frequencies. Measured on real BOSSbase blocks: bpp=1 survives 3x3 median
+filtering at 15/15 test blocks regardless of delta (40-80 all fine), but
+bpp=2 drops to ~4/15 and bpp=4 to 0/15 - increasing delta does *not* fix
+this, since it's about which frequencies get used, not how far apart the
+paired coefficients are pushed. Scaling shows the same pattern. This
+prototype does not yet cap DCT's bpp to keep this guarantee at every
+payload size (see README's "What doesn't work yet") - doing so would cut
+into the very capacity DCT is relied on for elsewhere in this pipeline
+(see aide/pipeline.py's DEFAULT_FRAGILE_METHOD_BUDGETS), and the right
+balance depends on the message size and cover image, so it's left as a
+documented, tunable trade-off rather than a hardcoded cap.
 """
 from __future__ import annotations
 

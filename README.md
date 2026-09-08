@@ -83,7 +83,8 @@ aide/
   embedding/
     lsb.py         variable bits-per-pixel LSB substitution
     dct.py         mid-frequency DCT coefficient-pair QIM
-    dwt.py         Haar DWT sub-band coefficient-pair QIM
+    dwt.py         2-level Haar DWT, coefficient-pair QIM in the coarse
+                   approximation sub-band
   tamper.py        per-block SHA-256 + histogram chi-square -> spatial
                    tamper mask + confidence
   attacks.py       6 attack categories, 8 concrete simulations
@@ -147,8 +148,8 @@ vary by cover image and message length, but this is representative:
   higher-capacity images comfortably clear the report's 42 dB target;
   longer messages that need more DCT/DWT blocks for robustness trade some
   PSNR for it — a real, measured trade-off, not a bug).
-- **JPEG compression, Q=50-70**: recovers reliably. This matches report
-  objective O4's explicit target (Q=50).
+- **JPEG compression, Q=30-70**: recovers reliably. This matches and
+  exceeds report objective O4's explicit target (Q=50).
 - **Localized splicing/tampering** (small-to-moderate region
   replacement): recovers reliably *when* the message spans enough RS
   codewords for interleaving to spread the damage thin — see the
@@ -156,7 +157,15 @@ vary by cover image and message length, but this is representative:
   distinguishes a genuinely replaced block (100% detection in testing)
   from mild diffuse noise (kept below the erasure budget so it doesn't
   cannibalize Reed-Solomon's blind-correction capacity).
-- **Mild Gaussian noise** (sigma~10): recovers reliably.
+- **Mild-to-moderate Gaussian noise** (sigma~10) and **Gaussian
+  smoothing filters**: recover reliably.
+- **Median filtering and 2x-down/up geometric scaling, at the DWT layer
+  specifically**: DWT was revised mid-project (see below) to embed in the
+  coarse 2-level wavelet approximation sub-band instead of the detail
+  sub-bands, and now measures 100% bit-exact survival against both
+  attacks in isolation — a real fix, not a workaround. Whether the *whole
+  message* survives these two attacks currently depends on how much DCT
+  capacity (see below) the message needs.
 - **Cryptographic integrity**: wrong shared secret, or any tampering with
   the ciphertext/tag, is always correctly rejected (`AideAuthenticationError`).
 
@@ -168,24 +177,32 @@ don't assume" rule:
 - **LSB is fragile to everything** (~45-55% bit-error rate under every
   attack tried, including a plain re-save). This is real and expected —
   LSB depends on exact pixel values. It's capped at a small share of the
-  payload (`pipeline.DEFAULT_FRAGILE_METHOD_BUDGETS`) specifically so it
-  doesn't dominate a codeword's error budget; earlier versions of this
-  pipeline let it reach >50% of payload bits and silently broke
-  compression resilience as a result.
-- **This DWT implementation (single-level Haar, coefficient-pair QIM) is
-  not robust to median filtering or geometric scaling**, even at very
-  large coefficient-separation deltas (tested to 400). This contradicts
-  the report's assumption of "superior robustness against geometric
-  attacks" for DWT — real robust DWT watermarking needs multi-level
-  embedding and explicit resynchronization, out of scope here. DWT's
-  payload share is capped accordingly, and DCT (which measured robust
-  across every attack tried, including these two) carries the bulk of the
-  payload instead.
-- **Heavier attacks fail**: JPEG Q=30, Gaussian noise sigma=20+, salt &
-  pepper noise, and >~5% cropping/splicing on a single-codeword message
-  all exceed Reed-Solomon's correction budget in testing. Some of these
-  (Q=50, sigma=20) are the report's O4 targets and are **not** currently
-  met at the model/dataset scale trained here.
+  payload (`pipeline.DEFAULT_FRAGILE_METHOD_BUDGETS`, 1% by default)
+  specifically so it doesn't dominate a codeword's error budget; earlier
+  versions of this pipeline let it reach >50% of payload bits and
+  silently broke compression resilience as a result.
+- **DCT's capacity-vs-robustness trade-off isn't automatically balanced
+  yet.** `aide/embedding/dct.py` spends bpp=1's capacity on the most
+  robust (lowest) mid-frequency coefficients, but bpp=2-4 reach into
+  higher, less robust frequencies to get more capacity — measured: bpp=1
+  survives 3x3 median filtering / 2x scaling at 15/15 test blocks
+  *regardless of delta*, while bpp=4 survives 0/15 regardless of delta
+  (it's about *which* frequencies are used, not how far apart the paired
+  coefficients are pushed). A message that needs more than bpp=1 worth of
+  DCT capacity from a given cover image will currently fail those two
+  attacks even though DWT itself no longer does — this prototype doesn't
+  yet cap DCT's bpp to preserve the guarantee, since the right cap
+  depends on message size and available cover-image capacity (a static
+  cap would just reintroduce the capacity-crunch problem
+  `fragile_method_budgets` exists to prevent). See
+  `aide/embedding/dct.py`'s module docstring.
+- **Heavier attacks fail**: Gaussian noise sigma=20+ and salt & pepper
+  noise exceed Reed-Solomon's correction budget in testing (DCT itself
+  degrades under heavier noise, independent of the frequency issue
+  above), as does >~2-3% cropping/splicing relative to how many RS
+  codewords the message spans. Gaussian noise sigma=20 is one of report
+  O4's explicit targets and is **not** currently met at the
+  model/dataset scale trained here.
 - **Single-codeword messages get zero interleaving benefit.** RS(255,223)
   always produces at least one full 255-byte codeword no matter how short
   the plaintext is, and interleaving only redistributes bytes *within*

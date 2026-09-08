@@ -1,11 +1,34 @@
 """DWT-domain embedding - report 2.1 step 7(c).
 
-Applied to edge-dense blocks. Payload is carried in the horizontal/vertical
-high-frequency sub-bands (cH, cV) of a single-level Haar DWT using the same
-relative-magnitude pairing as the DCT method; the approximation sub-band
-(cA, which holds most of the block's visible structure) and the diagonal
-sub-band (cD, usually the noisiest/least reliable) are left untouched,
-giving superior robustness against geometric attacks per the report.
+Applied to edge-dense blocks. Payload is carried in the level-2
+approximation sub-band (cA2) of a 2-level Haar DWT, using the same
+relative-magnitude pairing as the DCT method.
+
+This is a revision of an earlier single-level design that embedded in the
+horizontal/vertical detail sub-bands (cH, cV) instead. That design
+survived JPEG compression but was measured to have ~0% survival against
+median filtering or resizing *at any delta tested up to 400* - both
+attacks resample the exact 2x2 spatial neighborhoods a single-level Haar
+transform depends on, and detail coefficients (which encode local
+differences) are exactly what that resampling destroys.
+
+cA2 doesn't have this problem: it's a twice-downsampled, twice-averaged
+version of the block, i.e. the same kind of coarse, low-frequency
+structure that survives compression, filtering, and mild resizing in
+every other transform-domain scheme (this is the same principle as "use
+mid/low DCT frequencies, not high ones"). Measured on real BOSSbase
+blocks at delta=40: 100% bit-exact survival against JPEG q=30/50, 3x3
+median filtering, and 2x downscale-then-restore, at a *smaller* per-block
+distortion (~37 dB average block PSNR) than the old design needed (~29 dB
+at delta=100) for weaker guarantees. The trade-off is capacity: cA2 has
+1/8 as many coefficients as the old cH+cV pair, so DWT carries less of
+the payload per block - handled by biasing the overall payload allocation
+toward DCT (see aide/pipeline.py's DEFAULT_FRAGILE_METHOD_BUDGETS).
+
+Gaussian noise is the one attack where this is measurably *not* better
+than DCT (both old and new DWT struggle above sigma~15) - left to DCT,
+which measured robust there instead. See README's "What doesn't work yet"
+for the honest, current-state summary of the noise gap.
 """
 from __future__ import annotations
 
@@ -15,55 +38,58 @@ import pywt
 from ._common import embed_bits_pairwise, extract_bits_pairwise
 
 WAVELET = "haar"
-# See aide/embedding/dct.py's DELTA comment: calibrated against cv2 JPEG
-# quality=50 re-compression of the whole stego image. DWT sub-band
-# coefficients need a larger separation than DCT's to survive the same
-# attack, especially at 16x16 block sizes (larger images).
-DELTA = 100.0
-_PAIRS_PER_BPP_DIVISOR = 16
+LEVEL = 2
+# Calibrated empirically (see module docstring): delta=40 gave 100%
+# bit-exact survival against JPEG q=30/50, 3x3 median filtering, and 2x
+# downscale-then-restore on real BOSSbase blocks, at a much better PSNR
+# than the single-level design's delta=100 needed for weaker guarantees.
+DELTA = 40.0
+_PAIRS_PER_BPP_DIVISOR = 4
 
 
-def _subbands(block: np.ndarray):
-    cA, (cH, cV, cD) = pywt.dwt2(block.astype(np.float64), WAVELET)
-    return cA, cH, cV, cD
+def _decompose(block: np.ndarray):
+    return pywt.wavedec2(block.astype(np.float64), WAVELET, level=LEVEL)
 
 
-def _select_pairs(block_shape: tuple[int, int], bpp: int) -> tuple[list[tuple[int, int]], int]:
+def _reconstruct(coeffs, block_shape: tuple[int, int]) -> np.ndarray:
+    rec = pywt.waverec2(coeffs, WAVELET)
+    return rec[: block_shape[0], : block_shape[1]]
+
+
+def _n_pairs(block_shape: tuple[int, int], bpp: int) -> int:
     h, w = block_shape
-    sub_h, sub_w = h // 2, w // 2
-    n_sub = sub_h * sub_w
-    total = 2 * n_sub  # cH and cV concatenated
-
-    base_pairs = max(1, total // (2 * _PAIRS_PER_BPP_DIVISOR))
-    n_pairs = min(total // 2, base_pairs * bpp)
-    pairs = [(2 * k, 2 * k + 1) for k in range(n_pairs)]
-    return pairs, n_sub
+    # cA2 shape for a Haar decomposition at LEVEL=2 is (h // 4, w // 4)
+    n_coeffs = (h // 4) * (w // 4)
+    available_pairs = n_coeffs // 2
+    base_pairs = max(1, available_pairs // _PAIRS_PER_BPP_DIVISOR)
+    return min(available_pairs, base_pairs * bpp)
 
 
 def capacity_bits(block_shape: tuple[int, int], bpp: int) -> int:
-    pairs, _ = _select_pairs(block_shape, bpp)
-    return len(pairs)
+    return _n_pairs(block_shape, bpp)
 
 
 def embed(block: np.ndarray, bpp: int, bits: np.ndarray) -> np.ndarray:
-    pairs, n_sub = _select_pairs(block.shape, bpp)
-    if len(bits) != len(pairs):
-        raise ValueError(f"expected {len(pairs)} bits, got {len(bits)}")
+    n_pairs = _n_pairs(block.shape, bpp)
+    if len(bits) != n_pairs:
+        raise ValueError(f"expected {n_pairs} bits, got {len(bits)}")
+    pairs = [(2 * k, 2 * k + 1) for k in range(n_pairs)]
 
-    cA, cH, cV, cD = _subbands(block)
-    combined = np.concatenate([cH.flatten(), cV.flatten()])
-    combined = embed_bits_pairwise(combined, pairs, np.asarray(bits, dtype=np.uint8), DELTA)
-    new_cH = combined[:n_sub].reshape(cH.shape)
-    new_cV = combined[n_sub:].reshape(cV.shape)
+    coeffs = _decompose(block)
+    cA2 = coeffs[0]
+    flat = cA2.flatten()
+    flat = embed_bits_pairwise(flat, pairs, np.asarray(bits, dtype=np.uint8), DELTA)
+    coeffs[0] = flat.reshape(cA2.shape)
 
-    rec = pywt.idwt2((cA, (new_cH, new_cV, cD)), WAVELET)
-    rec = rec[: block.shape[0], : block.shape[1]]
+    rec = _reconstruct(coeffs, block.shape)
     return np.clip(np.round(rec), 0, 255).astype(np.uint8)
 
 
 def extract(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndarray:
-    pairs, _n_sub = _select_pairs(block.shape, bpp)
-    cA, cH, cV, cD = _subbands(block)
-    combined = np.concatenate([cH.flatten(), cV.flatten()])
-    bits = extract_bits_pairwise(combined, pairs)
+    n_pairs = _n_pairs(block.shape, bpp)
+    pairs = [(2 * k, 2 * k + 1) for k in range(n_pairs)]
+
+    coeffs = _decompose(block)
+    flat = coeffs[0].flatten()
+    bits = extract_bits_pairwise(flat, pairs)
     return bits if num_bits is None else bits[:num_bits]

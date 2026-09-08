@@ -53,7 +53,12 @@ IMAGE_EXTS = (".pgm", ".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")
 # more perceptible - would empirically SKIP nearly all DCT/DWT blocks
 # (measured: bpp=1 medians land around 30/29 dB) and collapse the "which
 # method" decision back down to "LSB or nothing", defeating the point.
-METHOD_PSNR_RELAXATION = {"LSB": 0.0, "DCT": -14.0, "DWT": -15.0}
+METHOD_PSNR_RELAXATION = {"LSB": 0.0, "DCT": -14.0, "DWT": -4.0}
+# DWT's relaxation is much smaller than DCT's because the current
+# implementation (2-level Haar, embedding in the coarse cA2 sub-band - see
+# aide/embedding/dwt.py) measured a bpp=1 median block PSNR of ~40 dB,
+# close to the 42 dB bar already; the older single-level detail-sub-band
+# design needed the same -15 dB relaxation DCT still uses.
 
 
 def _block_psnr(original: np.ndarray, stego: np.ndarray) -> float:
