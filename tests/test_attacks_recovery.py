@@ -25,11 +25,16 @@ SECRET = b"defence-shared-secret-2026"
 
 @pytest.fixture
 def high_capacity_sample(real_sample_paths: list[Path]) -> Path:
-    """BOSSbase image '1.pgm' has enough DCT/DWT capacity for the
-    multi-codeword message above under the default fragile-method budgets;
-    fall back to the first available sample if it isn't present."""
+    """BOSSbase image '1022.pgm' has enough DCT/DWT capacity for the
+    multi-codeword message above under the default fragile-method budgets
+    (measured: 9352 bits of DCT+DWT capacity, the most of the first 30
+    fetched samples - DCT's capacity was tightened considerably by the
+    robust-frequency cap in aide/embedding/dct.py, so this matters more
+    than it used to). Falls back to the first available sample if it
+    isn't present, in which case tests may skip on AideCapacityError
+    rather than fail outright."""
     for p in real_sample_paths:
-        if p.name == "1.pgm":
+        if p.name == "1022.pgm":
             return p
     return real_sample_paths[0]
 
@@ -79,15 +84,20 @@ def test_mild_noise_recovers(embedded):
 
 @pytest.mark.xfail(
     reason="Known, documented limitation (see README 'What doesn't work yet' and "
-           "aide/embedding/dct.py's module docstring): DWT itself was revised to "
-           "embed in the coarse 2-level approximation sub-band and now measures "
-           "robust to median filtering on its own. The remaining failure at this "
-           "message size is DCT's: capacity beyond bpp=1 reaches into higher, "
-           "less robust mid-frequencies (measured: bpp=1 survives 15/15 test "
-           "blocks regardless of delta, bpp=4 survives 0/15), and this "
-           "multi-codeword test message needs more than bpp=1 worth of DCT "
-           "capacity from this cover image. Not yet resolved by a hardcoded bpp "
-           "cap since the right cap trades away capacity needed elsewhere.",
+           "aide/embedding/dct.py's module docstring): DCT's coefficient-pair "
+           "selection is now capped to a frequency band measured robust to "
+           "median filtering in isolation (single-block bit-exact survival at "
+           "every bpp, since the fix), and per-bit error rates in the full "
+           "pipeline dropped accordingly (measured ~5.5%->1.6% for a similar "
+           "scaling test). But at this message's payload size each DCT block "
+           "only contributes a handful of bits (that's the trade-off the cap "
+           "makes), so those few bits are spread thinly across many separate "
+           "*bytes* rather than sharing bytes within a block - meaning a low "
+           "per-bit error rate still taints a disproportionately large number "
+           "of distinct Reed-Solomon codeword bytes. Not yet resolved: doing so "
+           "needs either byte-aligned bit packing per block or an explicit "
+           "per-codeword error budget in the AIDE capacity allocator, neither "
+           "of which exists yet.",
     strict=False,
 )
 def test_median_filter_recovers(embedded):
@@ -97,11 +107,13 @@ def test_median_filter_recovers(embedded):
 
 
 @pytest.mark.xfail(
-    reason="Known, documented limitation: geometric scaling resamples pixel "
-           "neighborhoods and hits the same DCT bpp>1 / higher-frequency "
-           "weakness as median filtering (see test_median_filter_recovers above "
-           "and aide/embedding/dct.py's module docstring) - DWT itself now "
-           "measures robust to scaling too. See README 'What doesn't work yet'.",
+    reason="Known, documented limitation: geometric scaling hits the same "
+           "bit-packing weakness as median filtering above, and additionally "
+           "damages more DCT coefficients per block than median filtering does "
+           "even within the capped robust frequency band (measured ~1.6% "
+           "average per-bit error rate for scaling vs DCT's near-0% for "
+           "median). DWT itself now measures robust to scaling in isolation. "
+           "See README 'What doesn't work yet' and test_median_filter_recovers.",
     strict=False,
 )
 def test_scaling_recovers(embedded):

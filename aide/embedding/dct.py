@@ -6,20 +6,32 @@ frequencies) are modified in pairs using relative-magnitude QIM, which
 survives JPEG-style requantization better than raw coefficient LSB
 substitution - matching the report's claim of inherent JPEG resilience.
 
-Known trade-off (measured, not yet resolved): `_select_pairs` walks the
-mid-frequency zigzag band low-to-high, so bpp=1 only touches its lowest,
-most robust end while bpp=4 reaches further into higher, less robust
-frequencies. Measured on real BOSSbase blocks: bpp=1 survives 3x3 median
-filtering at 15/15 test blocks regardless of delta (40-80 all fine), but
-bpp=2 drops to ~4/15 and bpp=4 to 0/15 - increasing delta does *not* fix
-this, since it's about which frequencies get used, not how far apart the
-paired coefficients are pushed. Scaling shows the same pattern. This
-prototype does not yet cap DCT's bpp to keep this guarantee at every
-payload size (see README's "What doesn't work yet") - doing so would cut
-into the very capacity DCT is relied on for elsewhere in this pipeline
-(see aide/pipeline.py's DEFAULT_FRAGILE_METHOD_BUDGETS), and the right
-balance depends on the message size and cover image, so it's left as a
-documented, tunable trade-off rather than a hardcoded cap.
+Capacity is deliberately capped well short of the whole mid-frequency
+band. Measured on real BOSSbase blocks: walking further into the band's
+higher frequencies for more capacity measurably costs robustness against
+median filtering and geometric scaling *independent of delta* (increasing
+delta does not fix it - it's about which frequencies get used, not how
+far apart the paired coefficients are pushed):
+
+    16x16 block, 3x3 median filter:  13 pairs -> 20/20 survive
+                                      20 pairs -> 17/20
+                                      26 pairs -> 10/20
+                                      39+ pairs -> 0/20
+    16x16 block, 2x downscale+restore: 13 pairs -> 20/20
+                                        20 pairs -> 16/20
+                                        26+ pairs -> 2/20 or worse
+    8x8 block,  3x3 median filter:    4 pairs -> 20/20
+                                       8 pairs -> 10/20
+
+`_MAX_ROBUST_PAIRS` below caps every bpp level within the safe zone found
+above (with a margin), trading away some of the raw capacity increase
+->bpp=4 could offer (previously ~4x this cap) for keeping the same
+robustness guarantee at every bpp level instead of only at bpp=1. This
+does mean more blocks are needed for a given message size - the AIDE
+engine and `aide.pipeline` are built to spread payload across many blocks
+already, so in practice this raises `AideCapacityError`'s bar rather than
+silently degrading recoverability under these two attacks like the
+uncapped version did.
 """
 from __future__ import annotations
 
@@ -36,7 +48,13 @@ from ._common import embed_bits_pairwise, extract_bits_pairwise, zigzag_indices
 # block itself looks fine in isolation. See aide/train.py's docstring for
 # the general "measure, don't assume" approach this project takes.
 DELTA = 40.0
-_PAIRS_PER_BPP_DIVISOR = 8  # controls how many coefficient pairs one bpp "unit" buys
+
+
+def _max_robust_pairs(block_size: int) -> int:
+    """Conservative caps from the measurements in the module docstring:
+    16x16 -> 12 (measured-safe boundary was 13), 8x8 -> 3 (measured-safe
+    boundary was 4). Scales as block_size**2 // 20 in between/beyond."""
+    return max(1, (block_size * block_size) // 20)
 
 
 def _dct2(block: np.ndarray) -> np.ndarray:
@@ -56,8 +74,9 @@ def _select_pairs(block_shape: tuple[int, int], bpp: int) -> list[tuple[int, int
     skip_high = max(1, n // 8)   # drop the noisiest highest frequencies
     mid = zz[skip_low: n - skip_high]
 
-    base_pairs = max(1, len(mid) // (2 * _PAIRS_PER_BPP_DIVISOR))
-    n_pairs = min(len(mid) // 2, base_pairs * bpp)
+    robust_cap = min(len(mid) // 2, _max_robust_pairs(h))
+    base_pairs = max(1, robust_cap // 4)  # bpp 1..4 spread evenly across the robust zone
+    n_pairs = min(robust_cap, base_pairs * bpp)
     return [(mid[2 * k], mid[2 * k + 1]) for k in range(n_pairs)]
 
 

@@ -159,13 +159,16 @@ vary by cover image and message length, but this is representative:
   cannibalize Reed-Solomon's blind-correction capacity).
 - **Mild-to-moderate Gaussian noise** (sigma~10) and **Gaussian
   smoothing filters**: recover reliably.
-- **Median filtering and 2x-down/up geometric scaling, at the DWT layer
-  specifically**: DWT was revised mid-project (see below) to embed in the
-  coarse 2-level wavelet approximation sub-band instead of the detail
-  sub-bands, and now measures 100% bit-exact survival against both
-  attacks in isolation — a real fix, not a workaround. Whether the *whole
-  message* survives these two attacks currently depends on how much DCT
-  capacity (see below) the message needs.
+- **Median filtering and 2x-down/up geometric scaling, at the transform-
+  domain layer specifically**: DWT was revised mid-project to embed in
+  the coarse 2-level wavelet approximation sub-band instead of the detail
+  sub-bands, and DCT's coefficient-pair selection was capped to a
+  frequency band measured robust to both attacks. Both now measure 100%
+  (DWT) or near-0% bit-error (DCT) survival in isolation — real fixes,
+  not workarounds; per-bit error rates in the full pipeline dropped
+  substantially as a result (e.g. ~5.5%→1.6% for a representative scaling
+  test). Whether the *whole message* survives currently still depends on
+  payload size — see the bit-packing issue below.
 - **Cryptographic integrity**: wrong shared secret, or any tampering with
   the ciphertext/tag, is always correctly rejected (`AideAuthenticationError`).
 
@@ -181,21 +184,24 @@ don't assume" rule:
   specifically so it doesn't dominate a codeword's error budget; earlier
   versions of this pipeline let it reach >50% of payload bits and
   silently broke compression resilience as a result.
-- **DCT's capacity-vs-robustness trade-off isn't automatically balanced
-  yet.** `aide/embedding/dct.py` spends bpp=1's capacity on the most
-  robust (lowest) mid-frequency coefficients, but bpp=2-4 reach into
-  higher, less robust frequencies to get more capacity — measured: bpp=1
-  survives 3x3 median filtering / 2x scaling at 15/15 test blocks
-  *regardless of delta*, while bpp=4 survives 0/15 regardless of delta
-  (it's about *which* frequencies are used, not how far apart the paired
-  coefficients are pushed). A message that needs more than bpp=1 worth of
-  DCT capacity from a given cover image will currently fail those two
-  attacks even though DWT itself no longer does — this prototype doesn't
-  yet cap DCT's bpp to preserve the guarantee, since the right cap
-  depends on message size and available cover-image capacity (a static
-  cap would just reintroduce the capacity-crunch problem
-  `fragile_method_budgets` exists to prevent). See
-  `aide/embedding/dct.py`'s module docstring.
+- **A bit-packing side effect of the DCT robustness fix reintroduces the
+  same failure mode from a different angle.** Capping DCT to a robust
+  frequency band (see above) means each block now contributes only a
+  handful of bits — often fewer than 8, i.e. less than one whole byte.
+  Reed-Solomon corrects *bytes*, not bits: when a block's few bits are
+  spread across mostly-separate byte positions rather than sharing bytes
+  within a block, even a very low per-bit error rate (~1-2%, measured)
+  taints a disproportionately large number of distinct codeword bytes,
+  because each bad bit tends to spoil a byte no other bit was going to
+  share. Measured: median filtering/scaling now degrade DCT's per-bit
+  error rate to near-zero, but full-message recovery at typical payload
+  sizes still fails because of this amplification effect, not because
+  the coefficients themselves are fragile anymore. Not yet resolved: the
+  fix is either byte-aligned bit packing per block, or an explicit
+  per-codeword error budget in the AIDE capacity allocator - neither
+  exists yet. See `aide/embedding/dct.py`'s module docstring and
+  `tests/test_attacks_recovery.py`'s xfail reasons for the full
+  measurement trail.
 - **Heavier attacks fail**: Gaussian noise sigma=20+ and salt & pepper
   noise exceed Reed-Solomon's correction budget in testing (DCT itself
   degrades under heavier noise, independent of the frequency issue
