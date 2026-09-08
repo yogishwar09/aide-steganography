@@ -201,7 +201,21 @@ def api_attack_types():
 
 
 if __name__ == "__main__":
+    import logging
     import os
+
     port = int(os.environ.get("PORT", 5050))
-    print(f"Model directory: {MODEL_DIR} ({'found' if (MODEL_DIR / 'weights.json').exists() else 'MISSING - run: aide train'})")
-    app.run(debug=True, port=port)
+    debug = os.environ.get("AIDE_WEB_DEBUG", "0") == "1"
+
+    if not debug:
+        # Quiet, presentation-friendly output: no reloader (which otherwise
+        # restarts the process and reprints the whole startup banner), no
+        # debugger, and no Werkzeug per-request access log line for every
+        # click. Set AIDE_WEB_DEBUG=1 if you're actively editing app.py and
+        # want auto-reload + tracebacks back.
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
+
+    model_status = "found" if (MODEL_DIR / "weights.json").exists() else "MISSING - run: aide train"
+    print(f"Model directory: {MODEL_DIR} ({model_status})")
+    print(f"AIDE Command Console ready -> http://127.0.0.1:{port}  (Ctrl+C to stop)")
+    app.run(debug=debug, use_reloader=debug, port=port)
