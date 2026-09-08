@@ -197,13 +197,22 @@ don't assume" rule:
   damaging" (report section 2.3). Measured per-codeword error counts are
   well past the correction budget even with DCT carrying nearly the
   entire payload, unlike median filtering's boundary case above.
-- **Heavier attacks fail**: Gaussian noise sigma=20+ and salt & pepper
-  noise exceed Reed-Solomon's correction budget in testing (DCT itself
-  degrades under heavier noise, independent of the frequency issue
-  above), as does >~2-3% cropping/splicing relative to how many RS
-  codewords the message spans. Gaussian noise sigma=20 is one of report
-  O4's explicit targets and is **not** currently met at the
-  model/dataset scale trained here.
+- **Gaussian noise at sigma=20 (report O4's explicit target) and salt &
+  pepper noise both fail at the default DCT delta** - and this one *is* a
+  quick, deliberate dial rather than an unsolved problem: measured
+  per-codeword error counts at sigma=20 (~100-120 out of 255 bytes) drop
+  to full recoverability once `DELTA` is raised from 40 to ~150, at a
+  real, measured image-quality cost (block PSNR ~30dB -> ~20dB - see the
+  table in `aide/embedding/dct.py`). This project ships the smaller
+  default because 40 already fully covers JPEG compression and median
+  filtering without paying that quality cost for a noise level nothing
+  else in the pipeline (LSB, DWT) is tuned to survive either - raising it
+  to actually hit O4's target end-to-end would need matching increases
+  across all three methods, which is future work, not a one-line change.
+- Heavier attacks still fail regardless of delta: >~2-3% cropping/
+  splicing relative to how many RS codewords the message spans exceeds
+  the erasure budget outright (detection still works - see
+  `test_heavy_cropping_may_exceed_erasure_budget_but_is_detected`).
 - **Single-codeword messages get zero interleaving benefit.** RS(255,223)
   always produces at least one full 255-byte codeword no matter how short
   the plaintext is, and interleaving only redistributes bytes *within*

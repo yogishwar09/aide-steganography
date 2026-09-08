@@ -47,6 +47,24 @@ from ._common import embed_bits_pairwise, extract_bits_pairwise, zigzag_indices
 # coefficients, silently destroying the embedded relation even though the
 # block itself looks fine in isolation. See aide/train.py's docstring for
 # the general "measure, don't assume" approach this project takes.
+#
+# This is a real, measured dial between visual quality and Gaussian-noise
+# robustness that this project deliberately leaves as a choice rather than
+# picking one value silently - raise DCT.DELTA yourself if your threat
+# model prioritizes surviving heavy noise over image quality:
+#
+#   delta   block PSNR   JPEG q=50   3x3 median   noise sigma=20
+#     40      30.5 dB      20/20        19/20          5/20
+#     80      24.8 dB      20/20        20/20         18/20
+#    150      19.7 dB      20/20        20/20         20/20
+#
+# 40 is the default because it's the smallest delta that already survives
+# JPEG and median filtering fully (see the pair-count table above) without
+# needlessly sacrificing image quality for a noise level (sigma=20) this
+# project doesn't guarantee elsewhere either (see README's "What doesn't
+# work yet") - LSB and DWT would need similar increases to actually reach
+# report O4's sigma=20 target end-to-end, which is future work, not a
+# one-line change.
 DELTA = 40.0
 
 
