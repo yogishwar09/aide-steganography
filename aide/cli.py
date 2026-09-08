@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 from . import attacks, metrics, pipeline
 from .model import AIDEModel
@@ -33,24 +34,31 @@ def cmd_embed(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    pipeline.save_grayscale(result.stego, args.out)
+    result.compose().save(args.out)
     sidecar_path = args.sidecar or Path(str(args.out) + ".aide.json")
     pipeline.save_sidecar(result.sidecar, sidecar_path)
 
-    cover, _ = pipeline.load_grayscale(args.cover)
+    # Compare the full original file against the full composed stego (RGB
+    # recombined with untouched chroma, if applicable) - a fairer visual
+    # quality report than comparing just the embedded Y/luma plane, since
+    # for a color cover most of the actual pixel data (chroma) is
+    # identical and that should show up in the numbers.
+    cover_arr = np.array(Image.open(args.cover).convert(result.mode))
+    stego_arr = np.array(result.compose())
     print(json.dumps({
         "stego": str(args.out),
         "sidecar": str(sidecar_path),
         "message_bytes": len(message),
         "blocks_used": len(result.sidecar.embedding_map),
-        "psnr_db": metrics.psnr(cover, result.stego),
-        "ssim": metrics.ssim(cover, result.stego),
+        "mode": result.mode,
+        "psnr_db": metrics.psnr(cover_arr, stego_arr),
+        "ssim": metrics.ssim(cover_arr, stego_arr),
     }, indent=2))
     return 0
 
 
 def cmd_extract(args: argparse.Namespace) -> int:
-    stego, _ = pipeline.load_grayscale(args.stego)
+    stego = pipeline.load_image(args.stego).y
     sidecar_path = args.sidecar or Path(str(args.stego) + ".aide.json")
     sidecar = pipeline.load_sidecar(sidecar_path)
     secret = args.secret.encode()
@@ -70,11 +78,14 @@ def cmd_extract(args: argparse.Namespace) -> int:
 
 
 def cmd_attack(args: argparse.Namespace) -> int:
-    gray, _ = pipeline.load_grayscale(args.stego)
+    loaded = pipeline.load_image(args.stego)
     fn = attacks.ATTACKS[args.type]
     kwargs = json.loads(args.params) if args.params else {}
-    attacked = fn(gray, **kwargs)
-    pipeline.save_grayscale(attacked, args.out)
+    attacked_y = fn(loaded.y, **kwargs)
+    # Attacks operate on the luma plane only (see pipeline.py's module
+    # docstring); recombine with the original chroma so a color stego
+    # still comes back out as a valid, viewable color image.
+    pipeline.save_image(attacked_y, loaded.mode, loaded.chroma, args.out)
     print(json.dumps({"attacked": str(args.out), "type": args.type, "params": kwargs}, indent=2))
     return 0
 
@@ -86,14 +97,16 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
     with metrics.measure() as t:
         result = pipeline.embed(args.cover, message, secret, model)
-    cover, _ = pipeline.load_grayscale(args.cover)
+    cover_arr = np.array(Image.open(args.cover).convert(result.mode))
+    stego_arr = np.array(result.compose())
 
     report = {
         "cover": str(args.cover),
         "message_bytes": len(message),
         "embed_time_s": t.elapsed_seconds,
-        "psnr_db": metrics.psnr(cover, result.stego),
-        "ssim": metrics.ssim(cover, result.stego),
+        "mode": result.mode,
+        "psnr_db": metrics.psnr(cover_arr, stego_arr),
+        "ssim": metrics.ssim(cover_arr, stego_arr),
         "attacks": {},
     }
 

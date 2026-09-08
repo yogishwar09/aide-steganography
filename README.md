@@ -129,6 +129,21 @@ self-describing steganographic header (embedding this metadata *in* the
 image too) is real future work, not built here — it doesn't change which
 novelty is being demonstrated.
 
+### Color images: Y-plane only
+
+The whole pipeline (features, AIDE decisions, embedding, tamper
+localization, attack simulation) operates on one 2D plane. For a color
+cover, `pipeline.load_image` converts to YCbCr and that plane is Y
+(luma); Cb/Cr are carried through untouched and recombined with
+`compose_image`/`EmbedResult.compose()` on save. This is standard
+practice (the eye is far less sensitive to chroma changes at high spatial
+frequency), and keeps the embedding pipeline single-channel rather than
+3x more complex. It does mean attack simulation isn't truly
+"color-aware" - e.g. it doesn't model chroma subsampling the way a real
+JPEG encoder's color-space handling would - which is a reasonable,
+documented scope boundary rather than an attempt at that separate
+problem.
+
 ### Why bit-level, not byte-level, capacity accounting
 
 DCT/DWT blocks often carry only a handful of *bits* (a 16x16 DWT block at
@@ -170,6 +185,12 @@ vary by cover image and message length, but this is representative:
   resilience the report doesn't even explicitly call out as difficult.
 - **Cryptographic integrity**: wrong shared secret, or any tampering with
   the ciphertext/tag, is always correctly rejected (`AideAuthenticationError`).
+- **Color (RGB) cover images**: converted to YCbCr and embedded in the Y
+  (luma) plane only, with Cb/Cr chroma carried through untouched and
+  recombined on save - full color fidelity outside the embedded plane,
+  survives a save/reload round trip through a real color PNG and a
+  compression attack applied to the color image. `aide embed`/`extract`/
+  `attack` all auto-detect grayscale vs. color and handle both.
 
 ## What doesn't work yet
 
@@ -221,9 +242,6 @@ don't assume" rule:
   enough to span multiple codewords (roughly 200+ plaintext bytes) to see
   the interleaving defense actually do something; `aide evaluate` and
   `scripts/demo.py` default to one for this reason.
-- **Grayscale only.** RGB input is converted to grayscale before
-  embedding. Repeating the pipeline per color channel is straightforward
-  future work.
 - **Trained on 300 real BOSSbase images**, not the report's 80,000+-image
   ALASKA2 corpus. `aide train --images <dir> --max-images N` accepts any
   local image folder — point it at a larger dataset to improve on these

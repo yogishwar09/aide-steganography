@@ -19,7 +19,8 @@ def psnr(original: np.ndarray, other: np.ndarray) -> float:
 
 
 def ssim(original: np.ndarray, other: np.ndarray) -> float:
-    return float(structural_similarity(original, other, data_range=255))
+    channel_axis = -1 if original.ndim == 3 else None
+    return float(structural_similarity(original, other, data_range=255, channel_axis=channel_axis))
 
 
 def bit_error_rate(original: bytes, recovered: bytes) -> float:

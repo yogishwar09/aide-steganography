@@ -45,3 +45,15 @@ def trained_model():
     if not (MODEL_DIR / "weights.json").exists():
         pytest.skip(f"no trained model at {MODEL_DIR}; run 'aide train' first")
     return AIDEModel.load(MODEL_DIR)
+
+
+@pytest.fixture
+def rgb_sample_path(tmp_path: Path) -> Path:
+    """A real RGB photo (scikit-image's bundled 'astronaut' sample, no
+    download needed) saved to a temp PNG, for testing color-image support."""
+    from skimage import data as skdata
+
+    path = tmp_path / "rgb_sample.png"
+    from PIL import Image
+    Image.fromarray(skdata.astronaut()).save(path)
+    return path

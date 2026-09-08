@@ -11,6 +11,9 @@ import argparse
 import sys
 from pathlib import Path
 
+import numpy as np
+from PIL import Image
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from aide import attacks, metrics, pipeline  # noqa: E402
@@ -58,9 +61,13 @@ def main() -> None:
             print("Try a different --cover image with more texture/edge content.")
             return
 
-    cover, _ = pipeline.load_grayscale(args.cover)
-    psnr = metrics.psnr(cover, result.stego)
-    ssim = metrics.ssim(cover, result.stego)
+    # Compare the full original file against the full composed stego (RGB
+    # recombined with untouched chroma for a color cover) - see cli.py's
+    # cmd_embed for why this is fairer than comparing just the Y plane.
+    cover_arr = np.array(Image.open(args.cover).convert(result.mode))
+    stego_arr = np.array(result.compose())
+    psnr = metrics.psnr(cover_arr, stego_arr)
+    ssim = metrics.ssim(cover_arr, stego_arr)
 
     from collections import Counter
     method_bits = Counter()
@@ -70,6 +77,7 @@ def main() -> None:
 
     print(f"Embedding complete in {t_embed.elapsed_seconds * 1000:.1f} ms "
           f"({t_embed.rss_delta_mb:.2f} MB RSS delta)")
+    print(f"  cover mode: {result.mode}")
     print(f"  blocks used: {len(result.sidecar.embedding_map)}")
     print(f"  payload after AES-256-GCM + RS(255,223): {total_bits // 8} bytes "
           f"({total_bits // 8 // 255} codewords)")

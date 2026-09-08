@@ -4,10 +4,18 @@ Ties together feature extraction, the AIDE decision engine, AES-256-GCM
 encryption, Reed-Solomon ECC + interleaving, adaptive LSB/DCT/DWT
 embedding, and tamper-localized recovery.
 
-Scope note: this prototype operates on grayscale images. RGB input is
-converted to grayscale before embedding (see README) - repeating the same
-pipeline per color channel is straightforward future work, out of scope
-here.
+Color images: the whole pipeline (features, AIDE decisions, embedding,
+tamper localization) operates on a single 2D plane. For an RGB cover,
+that plane is the Y (luma) channel of a YCbCr conversion - the Cb/Cr
+chroma planes are carried through untouched and recombined on save. This
+is standard practice (the human eye is far less sensitive to chroma
+changes at high spatial frequency than to luma changes, and it keeps the
+whole embedding pipeline single-channel rather than 3x more complex).
+Attack simulation (`aide.attacks`) and this module's own `recover()`
+still operate purely on the luma plane too - a genuinely color-aware
+attack model (e.g. chroma subsampling effects from real JPEG encoders)
+is not attempted here, since it's a separate can of worms from what this
+project's novelty is about.
 
 Side-channel metadata: recovery needs the per-block embedding map,
 reference hashes/histograms, RS parameters, and the GCM nonce. Per the
@@ -49,6 +57,9 @@ class AideCapacityError(Exception):
 
 
 def load_grayscale(path: Path) -> tuple[np.ndarray, bytes]:
+    """Legacy helper: always converts to grayscale, discarding color. Use
+    `load_image` for color-preserving loading (RGB cover -> Y-plane +
+    chroma for later recombination)."""
     raw = Path(path).read_bytes()
     gray = np.array(Image.open(path).convert("L"))
     return gray, raw
@@ -56,6 +67,40 @@ def load_grayscale(path: Path) -> tuple[np.ndarray, bytes]:
 
 def save_grayscale(gray: np.ndarray, path: Path) -> None:
     Image.fromarray(gray.astype(np.uint8), mode="L").save(path)
+
+
+@dataclass
+class LoadedImage:
+    y: np.ndarray                                    # luma/grayscale plane, always 2D uint8
+    mode: str                                         # "L" (grayscale) or "RGB"
+    chroma: tuple[np.ndarray, np.ndarray] | None      # (Cb, Cr) if mode == "RGB", else None
+    raw_bytes: bytes                                  # original file bytes, for image_hash
+
+
+def load_image(path: Path) -> LoadedImage:
+    """Load any standard-format image (report 2.1 step 1: "RGB or
+    grayscale"). RGB is converted to YCbCr and split; everything else in
+    this pipeline operates on the returned `y` plane only."""
+    raw = Path(path).read_bytes()
+    img = Image.open(path)
+    if img.mode in ("L", "1", "I", "F"):
+        return LoadedImage(y=np.array(img.convert("L")), mode="L", chroma=None, raw_bytes=raw)
+    y, cb, cr = (np.array(c) for c in img.convert("RGB").convert("YCbCr").split())
+    return LoadedImage(y=y, mode="RGB", chroma=(cb, cr), raw_bytes=raw)
+
+
+def compose_image(y: np.ndarray, mode: str, chroma: tuple[np.ndarray, np.ndarray] | None) -> Image.Image:
+    y_img = Image.fromarray(np.clip(y, 0, 255).astype(np.uint8), mode="L")
+    if mode == "L":
+        return y_img
+    cb, cr = chroma
+    ycbcr = Image.merge("YCbCr", [y_img, Image.fromarray(cb.astype(np.uint8)),
+                                   Image.fromarray(cr.astype(np.uint8))])
+    return ycbcr.convert("RGB")
+
+
+def save_image(y: np.ndarray, mode: str, chroma: tuple[np.ndarray, np.ndarray] | None, path: Path) -> None:
+    compose_image(y, mode, chroma).save(path)
 
 
 def _bytes_to_bits(data: bytes) -> np.ndarray:
@@ -113,8 +158,16 @@ class Sidecar:
 
 @dataclass
 class EmbedResult:
-    stego: np.ndarray
+    stego: np.ndarray                                 # the embedded luma/grayscale plane
     sidecar: Sidecar
+    mode: str = "L"                                   # "L" or "RGB" - the cover's original mode
+    chroma: tuple[np.ndarray, np.ndarray] | None = None  # (Cb, Cr), untouched, for RGB covers
+
+    def compose(self) -> "Image.Image":
+        """The full, ready-to-save stego image (RGB recombined with the
+        original chroma if the cover was color; identical to `stego`
+        as a grayscale image otherwise)."""
+        return compose_image(self.stego, self.mode, self.chroma)
 
 
 # Fraction of the RS-encoded payload each method may carry, as a share of
@@ -168,8 +221,9 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
     budgets = dict(DEFAULT_FRAGILE_METHOD_BUDGETS if fragile_method_budgets is None
                     else fragile_method_budgets)
 
-    gray, raw = load_grayscale(cover_path)
-    image_hash = crypto.hash_image_bytes(raw)
+    loaded = load_image(cover_path)
+    gray = loaded.y
+    image_hash = crypto.hash_image_bytes(loaded.raw_bytes)
 
     blocks, features = extract_image_features(gray)
     decisions = model.decide(features)
@@ -251,7 +305,7 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
         ciphertext_len=len(encrypted.ciphertext), tag_len=len(encrypted.tag),
         embedding_map=embedding_map, references=references,
     )
-    return EmbedResult(stego=stego, sidecar=sidecar)
+    return EmbedResult(stego=stego, sidecar=sidecar, mode=loaded.mode, chroma=loaded.chroma)
 
 
 @dataclass
