@@ -1,4 +1,4 @@
-"""AIDE command-line interface: embed, extract, attack, evaluate, train."""
+"""AIDE command-line interface: embed, extract, attack, evaluate, train, detect."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from . import attacks, metrics, pipeline
+from . import attacks, metrics, pipeline, steganalysis
 from .model import AIDEModel
 from .train import main as train_main
 
@@ -134,6 +134,30 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_detect(args: argparse.Namespace) -> int:
+    """Blind steganalysis: no sidecar, no secret, no assumption about how
+    (or whether) the image was steganographically modified - the defence/
+    intelligence "is this intercepted image smuggling hidden data" use
+    case. See aide/steganalysis.py's module docstring for the techniques
+    and their measured, honest limits."""
+    gray = pipeline.load_image(args.image).y
+    report = steganalysis.analyze(gray)
+    print(json.dumps({
+        "image": str(args.image),
+        "verdict": report.verdict,
+        "suspicion_score": report.suspicion_score,
+        "signals": {
+            "chi_square_p": report.chi_square_p,
+            "lsb_correlation": report.lsb_correlation,
+            "lsb_bit_balance": report.lsb_bit_balance,
+        },
+        "row_band_profile": report.row_band_profile,
+        "note": "row_band_profile is diagnostic only (see aide/steganalysis.py) - "
+                "it does not factor into the verdict.",
+    }, indent=2))
+    return 1 if report.verdict != "clean" else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aide", description="AIDE steganography framework")
     sub = p.add_subparsers(dest="command", required=True)
@@ -162,6 +186,10 @@ def build_parser() -> argparse.ArgumentParser:
     pa.add_argument("--type", choices=sorted(attacks.ATTACKS), required=True)
     pa.add_argument("--params", type=str, default=None, help='JSON kwargs, e.g. \'{"quality": 50}\'')
     pa.set_defaults(func=cmd_attack)
+
+    pd = sub.add_parser("detect", help="blind steganalysis: is this image hiding data? (no secret/sidecar needed)")
+    pd.add_argument("image", type=Path)
+    pd.set_defaults(func=cmd_detect)
 
     pv = sub.add_parser("evaluate", help="embed + run every attack + report PSNR/SSIM/BER/timing")
     pv.add_argument("cover", type=Path)

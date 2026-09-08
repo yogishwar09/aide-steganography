@@ -7,6 +7,16 @@ scoring policy, AES-256-GCM encryption, Reed-Solomon ECC with
 interleaving, adaptive LSB/DCT/DWT embedding, and tamper localization +
 recovery.
 
+Built for the report's own defence and intelligence framing (section 7:
+secure military/satellite/drone communication, border and port media
+screening, cyber defence command centres) - which means covering **both
+sides**: secure covert communication (`aide embed`/`extract`, for
+authorized secure channels) *and* detecting someone else's covert
+communication (`aide detect`, blind steganalysis with no secret or
+sidecar - the "is this intercepted image smuggling hidden data" analyst
+question). See [Detection: blind
+steganalysis](#detection-blind-steganalysis-defence--intelligence) below.
+
 This is a **real, tested implementation**, not a restatement of the
 report. It's also **honest about where it falls short** of the report's
 two-semester, ALASKA2-scale targets — see [What doesn't work
@@ -58,6 +68,7 @@ aide extract stego.png --secret "shared-secret"
 aide attack stego.png attacked.png --type compression --params '{"quality": 50}'
 aide extract attacked.png --secret "shared-secret" --sidecar stego.png.aide.json
 aide evaluate cover.png --secret "shared-secret"   # embed + every attack + metrics
+aide detect some_intercepted_image.jpg             # blind steganalysis, no secret/sidecar needed
 aide train --images data/samples --out data/models
 ```
 
@@ -90,6 +101,8 @@ aide/
   attacks.py       6 attack categories, 8 concrete simulations
   metrics.py       PSNR, SSIM, BER, timing/memory
   pipeline.py      embed()/recover() orchestration + sidecar I/O
+  steganalysis.py  blind detection (chi-square PoV, LSB correlation) -
+                   no secret/sidecar needed; the counter-intelligence side
   cli.py           `aide` command-line entry point
 ```
 
@@ -192,6 +205,50 @@ vary by cover image and message length, but this is representative:
   compression attack applied to the color image. `aide embed`/`extract`/
   `attack` all auto-detect grayscale vs. color and handle both.
 
+## Detection: blind steganalysis (defence & intelligence)
+
+`aide detect <image>` answers a genuinely different question than
+`extract`: given an image with **no known secret, no sidecar, and no
+assumption about whether or how it was modified**, does it look like it's
+carrying hidden data? This is the report's own border/port screening and
+cyber-defence-command-centre use case (section 7) - a counter-
+intelligence analyst's question, not a covert-communication operator's.
+
+**How it works** (`aide/steganalysis.py`): the classical chi-square
+pairs-of-values attack (Westfeld & Pfitzmann, 2001) as the primary,
+statistically well-powered signal, corroborated by two weaker signals
+(LSB/next-bit-plane correlation, LSB bit-balance). Combined into a
+suspicion score and a `clean` / `suspicious` / `likely_steganographic`
+verdict.
+
+**Measured, not assumed** (`tests/test_steganalysis.py`):
+- **False-positive rate on real, clean images: 1/40 (2.5%)** - consistent
+  with the statistical test's own significance level, not a systemic
+  bias. An earlier version of the scoring, which folded a per-row-band
+  breakdown into the verdict to catch partially-embedded images, was
+  caught by testing to inflate this to **16/20 false positives** (taking
+  the max of 8 correlated statistical tests without a multiple-testing
+  correction is itself unsound) and was reverted before shipping - a
+  detector that cries wolf on most clean images is worse than none for a
+  security tool. That row-band breakdown is still surfaced in the output
+  as a diagnostic "where might it be" plot, explicitly labeled as not
+  factoring into the verdict.
+- **Naive, full-image sequential LSB embedding (the classic, still
+  common, unsophisticated case): reliably detected** - 100% at full
+  embedding rate, degrading honestly at lower rates (a known, documented
+  limitation of the classical whole-image test, not hidden).
+- **AIDE's own adaptive stego images evade this detector entirely
+  (0/15 flagged)** - a real, verified answer to the report's own
+  "Detectability (RS analysis): Negative" target claim, for this specific
+  classical tool. AIDE's LSB payload share is capped under 1% (too little
+  to shift the whole-image pair-equalization statistic this test looks
+  for) and the rest lives in DCT/DWT coefficients this spatial-LSB-only
+  detector cannot see at all. This is a scoped, honest claim, not a
+  blanket one: it says nothing about detectability by more sophisticated
+  tools (Sample Pairs Analysis, RS rate estimation, transform-domain
+  steganalysis, or a trained ML classifier) - see "What doesn't work yet"
+  below for why those weren't attempted.
+
 ## What doesn't work yet
 
 Documented rather than papered over, per this project's own "measure,
@@ -249,6 +306,16 @@ don't assume" rule:
   --images <dir> --max-images N --max-blocks N` accepts any local image
   folder, so fetching more BOSSbase images (or pointing at ALASKA2/your
   own images) is a data problem now, not a code change.
+- **`aide detect`'s blind steganalysis only catches naive, spatial-LSB
+  steganography.** Sample Pairs Analysis and RS (Regular-Singular) rate
+  estimation - two more sophisticated blind detectors from the
+  literature, RS analysis by name in the report - were deliberately not
+  implemented rather than shipped from a possibly-subtly-wrong memory of
+  their derivation (both involve non-trivial quadratic-equation fits this
+  project had no reference implementation to validate against). DCT/DWT-
+  coefficient-domain steganalysis (which could in principle detect AIDE's
+  own transform-domain payload) wasn't attempted at all. See
+  `aide/steganalysis.py`'s module docstring.
 
 ## Technology stack
 
