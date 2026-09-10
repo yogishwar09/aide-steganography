@@ -12,4 +12,4 @@ requests>=2.31
 psutil
 joblib
 flask>=3.0
-
+reportlab>=4.0
