@@ -1,4 +1,4 @@
-# AIDE — Adaptive Intelligent Dynamic Embedding Framework
+<img src="webapp/static/logo-wordmark.svg" alt="AIDE — Adaptive Intelligent Dynamic Embedding" width="360">
 
 A working prototype of the AIDE steganography pipeline described in
 `AIDE_Technical_Report.pdf` (CD753PC Project Stage I, MGIT Hyderabad): a
