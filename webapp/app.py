@@ -43,6 +43,11 @@ MODEL_DIR = REPO_ROOT / "data" / "models"
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32MB upload cap
+# Always pick up template edits without a restart, independent of debug
+# mode (Jinja2 caches compiled templates in memory otherwise, which is
+# confusing when editing webapp/templates/index.html with the server
+# already running - a real issue hit while building this).
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 _model_cache: AIDEModel | None = None
 
