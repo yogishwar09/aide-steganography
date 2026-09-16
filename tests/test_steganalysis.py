@@ -125,3 +125,53 @@ def test_aide_own_stego_images_evade_this_classical_detector(real_sample_paths, 
         f"{flagged}/{tested} AIDE stego images were flagged - AIDE's own LSB/DWT/DCT "
         f"budget split should keep it under this detector's radar"
     )
+
+
+def test_spatial_suspicion_grid_shape_and_range(real_sample_image_path):
+    from PIL import Image
+
+    gray = np.array(Image.open(real_sample_image_path).convert("L"))
+    grid = steganalysis.spatial_suspicion_grid(gray, grid_size=4)
+
+    assert grid.shape == (4, 4)
+    assert np.all((grid >= 0.0) & (grid <= 1.0))
+
+
+def test_spatial_suspicion_grid_lights_up_the_embedded_region(real_sample_image_path):
+    """A genuinely embedded region should measurably raise its own grid
+    cells relative to their own before/after baseline. Does NOT assert
+    those cells end up higher than every other cell in the image - see
+    aide/steganalysis.py's module docstring: some clean regions
+    legitimately produce high chi-square values too (a real, documented
+    multiple-testing limitation), so only a same-region before/after
+    comparison is a sound thing to assert here."""
+    from PIL import Image
+
+    gray = np.array(Image.open(real_sample_image_path).convert("L"))
+    clean_grid = steganalysis.spatial_suspicion_grid(gray, grid_size=4)
+
+    rng = np.random.default_rng(0)
+    stego = gray.copy()
+    h, w = gray.shape
+    for r in range(0, h // 2):
+        row = stego[r, :w // 2]
+        bits = rng.integers(0, 2, size=row.size).astype(np.uint8)
+        stego[r, :w // 2] = (row & 0xFE) | bits
+    stego_grid = steganalysis.spatial_suspicion_grid(stego, grid_size=4)
+
+    # top-left quadrant cells (rows 0-1, cols 0-1 of a 4x4 grid) should rise
+    top_left_delta = (stego_grid[:2, :2] - clean_grid[:2, :2]).mean()
+    assert top_left_delta > 0.3, "embedding a region should raise its own grid cells' suspicion"
+
+
+def test_spatial_suspicion_grid_overlay_renders(real_sample_image_path):
+    from PIL import Image
+
+    from aide import visualize
+
+    gray = np.array(Image.open(real_sample_image_path).convert("L"))
+    report = steganalysis.analyze(gray)
+    overlay = visualize.suspicion_heatmap_overlay(gray, np.array(report.spatial_grid))
+
+    assert overlay.size == (gray.shape[1], gray.shape[0])
+    assert overlay.mode == "RGB"

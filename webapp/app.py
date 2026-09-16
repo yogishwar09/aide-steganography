@@ -196,6 +196,10 @@ def api_detect():
             "lsb_correlation": report.lsb_correlation,
             "lsb_bit_balance": report.lsb_bit_balance,
             "row_band_profile": report.row_band_profile,
+            "spatial_grid": report.spatial_grid,
+            # echoed back so the client can request the heatmap overlay
+            # (/api/visualize/suspicion-heatmap) without re-uploading
+            "image_b64": _image_to_b64(Image.fromarray(gray, mode="L")),
         })
     finally:
         tmp_path.unlink(missing_ok=True)
@@ -275,6 +279,29 @@ def api_visualize_tamper():
             "hash_mismatch_blocks": int(report.hash_mismatch.sum()),
             "total_blocks": len(blocks),
         })
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+@app.route("/api/visualize/suspicion-heatmap", methods=["POST"])
+def api_visualize_suspicion_heatmap():
+    """Where in an arbitrary intercepted image does blind steganalysis
+    look most suspicious? Colorizes the coarse chi-square grid from
+    /api/detect (blue=low, red=high) over the image. Diagnostic only -
+    see aide/steganalysis.py's module docstring on why individual hot
+    cells aren't conclusive on their own (the same multiple-testing
+    caveat as the row-band profile)."""
+    payload = request.get_json(force=True)
+    image_b64 = payload.get("image_b64")
+    grid = payload.get("spatial_grid")
+    if not image_b64 or not grid:
+        return jsonify({"error": "image_b64 and spatial_grid are required"}), 400
+
+    tmp_path = _b64_to_temp_file(image_b64)
+    try:
+        gray = pipeline.load_image(tmp_path).y
+        overlay = visualize.suspicion_heatmap_overlay(gray, np.array(grid))
+        return jsonify({"overlay_b64": _image_to_b64(overlay)})
     finally:
         tmp_path.unlink(missing_ok=True)
 

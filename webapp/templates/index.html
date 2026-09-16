@@ -6,30 +6,30 @@
 <title>AIDE — Secure Comms &amp; Threat Detection</title>
 <style>
   :root {
-    --bg: #0a0d12;
-    --panel: #10141c;
-    --panel-2: #161b26;
-    --panel-3: #1b2231;
-    --border: #232b3a;
-    --border-soft: #1b212d;
-    --text: #e6ebf2;
-    --text-dim: #8a96a8;
-    --text-faint: #5b6576;
-    --accent: #35d0c4;
-    --accent-dim: #1f6e69;
-    --accent-2: #5b8cff;
-    --purple: #9b7bff;
-    --warn: #f0b342;
-    --danger: #f0605f;
-    --ok: #46d17f;
+    --bg: #0b0a12;
+    --panel: #141220;
+    --panel-2: #1a1728;
+    --panel-3: #221d33;
+    --border: #2c2542;
+    --border-soft: #201b30;
+    --text: #ece9f5;
+    --text-dim: #9490ab;
+    --text-faint: #605c78;
+    --accent: #7c6ff0;
+    --accent-dim: #3d3670;
+    --accent-2: #21c7de;
+    --purple: #ec4899;
+    --warn: #f0a63e;
+    --danger: #f2555f;
+    --ok: #3ddc91;
     --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
-    --lsb-color: #f0b342;
-    --dct-color: #35d0c4;
-    --dwt-color: #5b8cff;
+    --lsb-color: #f0a63e;
+    --dct-color: #2bd6a8;
+    --dwt-color: #7c6ff0;
     --radius: 10px;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
     --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
-    --shadow-glow: 0 0 0 1px rgba(53,208,196,0.15), 0 8px 24px rgba(53,208,196,0.08);
+    --shadow-glow: 0 0 0 1px rgba(124,111,240,0.15), 0 8px 24px rgba(124,111,240,0.08);
   }
   * { box-sizing: border-box; }
   html { font-size: 16px; scroll-behavior: smooth; }
@@ -38,7 +38,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh; font-size: 0.95rem; line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
-  ::selection { background: rgba(53,208,196,0.28); }
+  ::selection { background: rgba(124,111,240,0.28); }
   svg.icon { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ---------- App shell ---------- */
@@ -55,7 +55,7 @@
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow);
   }
-  .brand-mark svg { width: 18px; height: 18px; stroke: #05201d; stroke-width: 2.4; }
+  .brand-mark svg { width: 18px; height: 18px; stroke: #1a1330; stroke-width: 2.4; }
   .brand-text .name { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em; }
   .brand-text .tagline { font-size: 0.68rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 1px; }
 
@@ -102,7 +102,7 @@
     color: var(--text-faint); flex-shrink: 0; transition: all 0.2s ease;
   }
   .step.active .step-circle { border-color: var(--accent); color: var(--accent); }
-  .step.done .step-circle { background: var(--accent); border-color: var(--accent); color: #05201d; }
+  .step.done .step-circle { background: var(--accent); border-color: var(--accent); color: #1a1330; }
   .step-label { font-size: 0.82rem; color: var(--text-faint); white-space: nowrap; }
   .step.active .step-label, .step.done .step-label { color: var(--text); font-weight: 500; }
   .step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 14px; min-width: 20px; transition: background 0.3s ease; }
@@ -133,7 +133,7 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
   input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
-    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(53,208,196,0.12);
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,240,0.12);
   }
   textarea { resize: vertical; min-height: 90px; font-family: var(--mono); line-height: 1.5; font-size: 0.84rem; }
   select { cursor: pointer; }
@@ -167,7 +167,7 @@
 
   /* ---------- Buttons ---------- */
   button {
-    background: var(--accent); color: #05201d; border: none; padding: 11px 20px;
+    background: var(--accent); color: #1a1330; border: none; padding: 11px 20px;
     border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; margin-top: 18px;
     transition: filter 0.12s ease, transform 0.08s ease; display: inline-flex; align-items: center; gap: 8px;
     font-family: inherit;
@@ -178,11 +178,11 @@
   button.secondary { background: var(--panel-3); color: var(--text); border: 1px solid var(--border); }
   button.secondary:hover { background: var(--panel-2); border-color: var(--accent); filter: none; }
   button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent-dim); padding: 8px 16px; font-size: 0.82rem; }
-  button.ghost:hover { background: rgba(53,208,196,0.08); filter: none; }
+  button.ghost:hover { background: rgba(124,111,240,0.08); filter: none; }
   button.icon-btn { padding: 8px 10px; margin-top: 0; }
   button.danger { background: var(--danger); color: #2a0505; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .viz-toggle-row button.secondary.active { background: var(--accent); color: #05201d; border-color: var(--accent); }
+  .viz-toggle-row button.secondary.active { background: var(--accent); color: #1a1330; border-color: var(--accent); }
 
   /* ---------- Image display ---------- */
   .imgbox {
@@ -534,6 +534,19 @@
               <div class="bandbars" id="bandBars"></div>
             </div>
           </div>
+
+          <hr class="section-divider">
+          <div class="btn-row" style="align-items:center">
+            <button class="secondary" id="btnShowSuspicionHeatmap"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Show suspicion heatmap</button>
+          </div>
+          <div class="hidden" id="suspicionHeatmapSection" style="margin-top:16px">
+            <div class="row">
+              <div class="col">
+                <div class="imgbox" id="suspicionHeatmapBox"><div class="placeholder">Loading...</div></div>
+                <div class="imgcaption">Coarse spatial chi-square grid, blue = low suspicion → red = high. Diagnostic only — large, statistically powerful regions, not the small blocks AIDE actually embeds in, and not part of the verdict above. A hot cell is a lead for an analyst to inspect further, not proof on its own.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -657,7 +670,7 @@ function wireDropzone(zoneId, inputId, thumbId, filenameId, filesizeId, removeId
 }
 
 // ---------- Operator: Embed ----------
-let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null, coverDataUrl: null };
+let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null, coverDataUrl: null, detectImageB64: null, detectGrid: null };
 
 wireDropzone('coverDropzone', 'coverFile', 'coverThumb', 'coverFilename', 'coverFilesize', 'coverRemove', 'coverPreviewBox', (file, dataUrl) => {
   state.coverDataUrl = dataUrl;
@@ -885,10 +898,30 @@ $('btnDetect').addEventListener('click', async () => {
     $('gaugeCorr').style.width = (Math.max(0, 1 - Math.abs(data.lsb_correlation) / 0.15) * 100).toFixed(1) + '%';
     $('gaugeBalance').style.width = (Math.max(0, 1 - data.lsb_bit_balance / 0.05) * 100).toFixed(1) + '%';
     $('bandBars').innerHTML = data.row_band_profile.map(p => `<div class="bandbar" style="height:${Math.max(2, p*100)}%" title="p=${p.toFixed(3)}"></div>`).join('');
+
+    state.detectImageB64 = data.image_b64;
+    state.detectGrid = data.spatial_grid;
+    $('suspicionHeatmapSection').classList.add('hidden');
+    $('suspicionHeatmapBox').innerHTML = '<div class="placeholder">Loading...</div>';
   } catch (err) {
     $('btnDetect').disabled = false;
     toast('err', 'Request failed: ' + err);
   }
+});
+
+$('btnShowSuspicionHeatmap').addEventListener('click', async () => {
+  if (!state.detectImageB64 || !state.detectGrid) { toast('err', 'Run an analysis first.'); return; }
+  $('suspicionHeatmapSection').classList.remove('hidden');
+  $('suspicionHeatmapBox').innerHTML = '<div class="placeholder"><span class="spinner"></span></div>';
+  try {
+    const res = await fetch('/api/visualize/suspicion-heatmap', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64: state.detectImageB64, spatial_grid: state.detectGrid }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('suspicionHeatmapBox').innerHTML = `<div class="placeholder">${data.error}</div>`; return; }
+    showImage($('suspicionHeatmapBox'), 'data:image/png;base64,' + data.overlay_b64);
+  } catch (err) { $('suspicionHeatmapBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`; }
 });
 
 // ---------- Model Insights ----------
@@ -958,7 +991,7 @@ async function loadModelInsights() {
     `;
 
     const dist = meta.label_distribution || {};
-    const distColors = { LSB: '#f0b342', DCT: '#35d0c4', DWT: '#5b8cff', SKIP: '#555f70' };
+    const distColors = { LSB: '#f0a63e', DCT: '#2bd6a8', DWT: '#7c6ff0', SKIP: '#555f70' };
     const donutData = Object.entries(dist).map(([label, value]) => ({ label, value, color: distColors[label] || '#888' }));
     if (donutData.length) renderDonut($('labelDist'), donutData);
     else $('labelDist').innerHTML = '<div class="imgcaption">No label distribution recorded.</div>';
