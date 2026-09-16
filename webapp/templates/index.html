@@ -9,26 +9,35 @@
     --bg: #0a0e14;
     --panel: #121826;
     --panel-2: #182236;
+    --panel-3: #1c2940;
     --border: #253247;
     --text: #dde6f0;
     --text-dim: #8a99ad;
     --accent: #3fd0c9;
     --accent-2: #5b8cff;
+    --purple: #9b7bff;
     --warn: #e8b339;
     --danger: #ef5a5a;
     --ok: #4fd67a;
     --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+    --lsb-color: #e8b339;
+    --dct-color: #3fd0c9;
+    --dwt-color: #5b8cff;
   }
   * { box-sizing: border-box; }
-  html { font-size: 17px; }
+  html { font-size: 17px; scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh; font-size: 1rem; line-height: 1.5;
   }
+  ::selection { background: rgba(63,208,201,0.3); }
+
   header {
     padding: 22px clamp(28px, 4vw, 80px); border-bottom: 1px solid var(--border);
     display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    position: sticky; top: 0; background: rgba(10,14,20,0.92); backdrop-filter: blur(8px);
+    z-index: 50;
   }
   header h1 { font-size: 1.45rem; margin: 0; letter-spacing: 0.02em; }
   header h1 span { color: var(--accent); }
@@ -41,16 +50,18 @@
   .tabs {
     display: flex; gap: 2px; padding: 0 clamp(28px, 4vw, 80px);
     border-bottom: 1px solid var(--border); background: var(--panel);
+    position: sticky; top: 65px; z-index: 40; overflow-x: auto;
   }
   .tab {
     padding: 16px 26px; cursor: pointer; color: var(--text-dim); font-size: 1rem;
-    border-bottom: 2px solid transparent; user-select: none;
+    border-bottom: 2px solid transparent; user-select: none; white-space: nowrap;
+    transition: color 0.15s ease;
   }
   .tab.active { color: var(--text); border-bottom-color: var(--accent); }
   .tab:hover { color: var(--text); }
 
   .page {
-    display: none; padding: 36px clamp(28px, 4vw, 80px);
+    display: none; padding: 36px clamp(28px, 4vw, 80px) 80px;
     max-width: 1900px; margin: 0 auto; width: 100%;
   }
   .page.active { display: block; }
@@ -58,14 +69,21 @@
   .card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
     padding: 28px 30px; margin-bottom: 24px;
+    animation: fadein 0.35s ease;
   }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .card h2 {
     font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--text-dim); margin: 0 0 20px 0; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card h2 .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+    color: #05201d; font-size: 0.78rem; font-weight: 800; flex-shrink: 0;
   }
   .row { display: flex; gap: 28px; flex-wrap: wrap; }
   .col { flex: 1; min-width: 260px; }
-  /* embed / attack rows: keep the form compact, let the image previews take the rest */
   .row.split .form-col { flex: 0 0 380px; min-width: 320px; }
   .row.split .img-col { flex: 1; min-width: 340px; }
 
@@ -74,22 +92,44 @@
   input[type=text], input[type=password], textarea, select {
     width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
     padding: 11px 13px; border-radius: 7px; font-size: 0.95rem; font-family: inherit;
+    transition: border-color 0.15s ease;
+  }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--accent);
   }
   textarea { resize: vertical; min-height: 90px; font-family: var(--mono); line-height: 1.5; }
-  input[type=file] { color: var(--text-dim); font-size: 0.9rem; }
+
+  /* Drag-and-drop upload zone */
+  .dropzone {
+    border: 1.5px dashed var(--border); border-radius: 10px; padding: 22px 16px;
+    text-align: center; cursor: pointer; background: var(--panel-2);
+    transition: border-color 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--panel-3); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .dropzone .dz-icon { font-size: 1.6rem; margin-bottom: 4px; }
+  .dropzone .dz-text { font-size: 0.85rem; color: var(--text-dim); }
+  .dropzone .dz-filename { font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-top: 4px; word-break: break-all; }
 
   button {
     background: var(--accent); color: #05201d; border: none; padding: 12px 22px;
     border-radius: 7px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 20px;
+    transition: filter 0.12s ease, transform 0.08s ease;
   }
   button:hover { filter: brightness(1.08); }
+  button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
   button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 8px 16px; font-size: 0.85rem; margin-top: 10px; }
+  button.ghost:hover { background: rgba(63,208,201,0.1); }
   button.danger { background: var(--danger); color: #2a0505; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
   .imgbox {
     border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #000;
     display: flex; align-items: center; justify-content: center; min-height: 340px;
+    position: relative;
   }
   .imgbox img { max-width: 100%; max-height: 560px; display: block; }
   .imgbox .placeholder { color: var(--text-dim); font-size: 0.9rem; padding: 40px; text-align: center; }
@@ -109,10 +149,10 @@
   .verdict.likely_steganographic { background: rgba(239,90,90,0.15); color: var(--danger); border: 1px solid var(--danger); }
 
   .gauge-track { background: var(--panel-2); border-radius: 6px; height: 12px; overflow: hidden; margin-top: 10px; }
-  .gauge-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+  .gauge-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
 
   .bandbars { display: flex; gap: 4px; align-items: flex-end; height: 80px; margin-top: 12px; }
-  .bandbar { flex: 1; background: var(--accent-2); border-radius: 2px 2px 0 0; min-height: 2px; }
+  .bandbar { flex: 1; background: var(--accent-2); border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s ease; }
 
   .status-line { font-family: var(--mono); font-size: 0.88rem; padding: 12px 16px; border-radius: 7px; margin-top: 16px; }
   .status-line.ok { background: rgba(79,214,122,0.1); color: var(--ok); border: 1px solid rgba(79,214,122,0.3); }
@@ -139,19 +179,52 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
+
+  /* legend chips for overlay visualizations */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 0.82rem; color: var(--text-dim); }
+  .legend .chip { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  .viz-toggle-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .viz-toggle-row button.active { background: var(--accent); color: #05201d; }
+
+  /* Model insights */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+  .stat-card { background: var(--panel-2); border-radius: 10px; padding: 18px 20px; border: 1px solid var(--border); }
+  .stat-card .num { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .stat-card .lbl { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
+
+  .weight-row { display: grid; grid-template-columns: 140px 1fr 70px; align-items: center; gap: 14px; margin-top: 14px; }
+  .weight-row:first-of-type { margin-top: 0; }
+  .weight-row .name { font-size: 0.9rem; }
+  .weight-row .num { font-family: var(--mono); font-size: 0.88rem; text-align: right; color: var(--text-dim); }
+  .weight-track { background: var(--panel-2); border-radius: 6px; height: 16px; overflow: hidden; }
+  .weight-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+
+  table.info-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  table.info-table td { padding: 9px 4px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  table.info-table td:first-child { color: var(--text-dim); }
+  table.info-table td:last-child { font-family: var(--mono); text-align: right; }
+
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+
+  @media (max-width: 720px) {
+    .weight-row { grid-template-columns: 100px 1fr 60px; }
+  }
 </style>
 </head>
 <body>
 
 <header>
   <h1><span>AIDE</span> Command Console</h1>
-  <span class="sub">Adaptive Intelligent Dynamic Embedding — secure comms &amp; steganalysis</span>
+  <span class="sub">Adaptive Intelligent Dynamic Embedding — secure comms, steganalysis &amp; model insight</span>
   <span class="badge">LOCAL · NOT CONNECTED TO NETWORK</span>
 </header>
 
 <div class="tabs">
-  <div class="tab active" data-page="operator">🛰 Operator — Secure Communication</div>
-  <div class="tab" data-page="analyst">🔍 Analyst — Threat Detection</div>
+  <div class="tab active" data-page="operator">🛰&nbsp; Operator — Secure Communication</div>
+  <div class="tab" data-page="analyst">🔍&nbsp; Analyst — Threat Detection</div>
+  <div class="tab" data-page="insights">🧠&nbsp; Model Insights</div>
 </div>
 
 <!-- ============ OPERATOR PAGE ============ -->
@@ -163,11 +236,16 @@
   </div>
 
   <div class="card">
-    <h2>1 · Embed</h2>
+    <h2><span class="step-num">1</span> Embed</h2>
     <div class="row split">
       <div class="col form-col">
         <label>Cover image</label>
-        <input type="file" id="coverFile" accept="image/*">
+        <div class="dropzone" id="coverDropzone">
+          <input type="file" id="coverFile" accept="image/*">
+          <div class="dz-icon">📁</div>
+          <div class="dz-text">Drop an image here, or click to browse</div>
+          <div class="dz-filename" id="coverFilename"></div>
+        </div>
         <label>Secret message</label>
         <textarea id="messageText">CLASSIFIED SITREP: Convoy Alpha departs staging area 0600Z, route Bravo-7. Escort confirmed, rendezvous at checkpoint Delta.</textarea>
         <label>Shared secret (key material)</label>
@@ -185,10 +263,27 @@
       </div>
     </div>
     <div class="metrics hidden" id="embedMetrics"></div>
+
+    <div class="hidden" id="vizSection">
+      <hr class="section-divider">
+      <label style="margin-top:0">🔬 Visual analysis — see exactly what the adaptive engine did</label>
+      <div class="viz-toggle-row">
+        <button class="secondary" id="btnShowMap">Embedding map (which block, which method)</button>
+        <button class="secondary" id="btnShowDiff">Difference heatmap (cover vs. stego)</button>
+        <button class="secondary" id="btnHideViz">Hide</button>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <div class="col">
+          <div class="imgbox" id="vizBox"><div class="placeholder">Choose a view above</div></div>
+          <div class="imgcaption" id="vizCaption"></div>
+          <div class="legend hidden" id="vizLegend"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="card hidden" id="attackCard">
-    <h2>2 · Simulate interception attack (optional)</h2>
+    <h2><span class="step-num">2</span> Simulate interception attack (optional)</h2>
     <div class="row split">
       <div class="col form-col">
         <label>Attack type</label>
@@ -203,10 +298,29 @@
         <div class="imgcaption">After attack</div>
       </div>
     </div>
+
+    <div class="hidden" id="tamperSection">
+      <hr class="section-divider">
+      <label style="margin-top:0">🛡 Tamper localization — which blocks does the receiver still trust?</label>
+      <div class="btn-row">
+        <button class="secondary" id="btnShowTamper">Analyze tamper / erasure map</button>
+      </div>
+      <div class="row" style="margin-top:16px" id="tamperResultRow">
+        <div class="col">
+          <div class="imgbox hidden" id="tamperBox"></div>
+          <div class="legend hidden" id="tamperLegend">
+            <span class="chip"><span class="swatch" style="background:#ef5a5a"></span>Erasure (fed to ECC as known-bad)</span>
+            <span class="chip"><span class="swatch" style="background:#e8b339"></span>Hash mismatch (left to blind ECC)</span>
+            <span class="chip"><span class="swatch" style="background:transparent;border:1px solid #555"></span>Trusted</span>
+          </div>
+        </div>
+        <div class="col" id="tamperStatsCol"></div>
+      </div>
+    </div>
   </div>
 
   <div class="card hidden" id="recoverCard">
-    <h2>3 · Recover</h2>
+    <h2><span class="step-num">3</span> Recover</h2>
     <div class="row">
       <div class="col">
         <button id="btnRecoverStego">Recover from stego (no attack)</button>
@@ -235,7 +349,12 @@
     <div class="row split">
       <div class="col form-col">
         <label>Suspect image</label>
-        <input type="file" id="detectFile" accept="image/*">
+        <div class="dropzone" id="detectDropzone">
+          <input type="file" id="detectFile" accept="image/*">
+          <div class="dz-icon">🔎</div>
+          <div class="dz-text">Drop an image here, or click to browse</div>
+          <div class="dz-filename" id="detectFilename"></div>
+        </div>
         <button id="btnDetect">Analyze</button>
         <div id="detectStatus"></div>
       </div>
@@ -260,8 +379,37 @@
       <div class="col">
         <label style="margin-top:0">Row-band profile (diagnostic only — not part of verdict)</label>
         <div class="bandbars" id="bandBars"></div>
-        <div class="imgcaption">Chi-square p per horizontal band — high bands hint at *where*, but individual bands are noisy (see README)</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODEL INSIGHTS PAGE ============ -->
+<div class="page" id="page-insights">
+  <div class="disclaimer">
+    <strong>Model insights.</strong> The report's own claim is that AIDE's scoring is
+    &ldquo;explainable, auditable, not a black box.&rdquo; This page shows exactly what the trained decision
+    engine learned — not a description of it.
+  </div>
+
+  <div class="card">
+    <h2>Training snapshot</h2>
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>Learned scoring weights &nbsp;—&nbsp; S(b) = &alpha;&middot;texture + &beta;&middot;entropy + &gamma;&middot;variance + &delta;&middot;edge</h2>
+    <div id="weightBars"></div>
+  </div>
+
+  <div class="row">
+    <div class="col card" style="margin:0">
+      <h2>Confidence gate &amp; method thresholds</h2>
+      <table class="info-table" id="thresholdTable"></table>
+    </div>
+    <div class="col card" style="margin:0">
+      <h2>Training label distribution</h2>
+      <div id="labelDist"></div>
     </div>
   </div>
 </div>
@@ -275,6 +423,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     $('page-' + tab.dataset.page).classList.add('active');
+    if (tab.dataset.page === 'insights' && !insightsLoaded) loadModelInsights();
   });
 });
 
@@ -291,12 +440,36 @@ function fileToDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
+function dataUrlToB64(dataUrl) {
+  return dataUrl.split(',')[1];
+}
+
+// ---------- Generic dropzone wiring ----------
+function wireDropzone(zoneId, inputId, filenameId, previewBoxId, onFile) {
+  const zone = $(zoneId), input = $(inputId), fname = $(filenameId);
+  ['dragover', 'dragenter'].forEach(ev => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('dragover'); }));
+  ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove('dragover'); }));
+  zone.addEventListener('drop', (e) => {
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    fname.textContent = file.name;
+    const dataUrl = await fileToDataUrl(file);
+    if (previewBoxId) showImage($(previewBoxId), dataUrl);
+    if (onFile) onFile(file, dataUrl);
+  });
+}
 
 // ---------- Operator: Embed ----------
-let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null };
+let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null, coverDataUrl: null };
 
-$('coverFile').addEventListener('change', async (e) => {
-  if (e.target.files[0]) showImage($('coverPreviewBox'), await fileToDataUrl(e.target.files[0]));
+wireDropzone('coverDropzone', 'coverFile', 'coverFilename', 'coverPreviewBox', (file, dataUrl) => {
+  state.coverDataUrl = dataUrl;
 });
 
 $('btnEmbed').addEventListener('click', async () => {
@@ -338,9 +511,13 @@ $('btnEmbed').addEventListener('click', async () => {
       <div class="metric"><div class="value" style="font-size:13px">${methodStr}</div><div class="label">method mix</div></div>
     `;
 
+    $('vizSection').classList.remove('hidden');
+    $('vizBox').innerHTML = '<div class="placeholder">Choose a view above</div>';
+    $('vizLegend').classList.add('hidden');
     $('attackCard').classList.remove('hidden');
     $('recoverCard').classList.remove('hidden');
     $('attackedPreviewBox').innerHTML = '<div class="placeholder">Attacked image will appear here</div>';
+    $('tamperSection').classList.add('hidden');
     $('recoveredMessage').classList.add('hidden');
     $('btnRecoverAttacked').classList.add('hidden');
     statusLine($('recoverStatus'), 'info', '');
@@ -349,6 +526,63 @@ $('btnEmbed').addEventListener('click', async () => {
     statusLine($('embedStatus'), 'err', 'Request failed: ' + err);
   }
 });
+
+// ---------- Operator: Visual analysis (embedding map / diff heatmap) ----------
+const methodLegendHtml = `
+  <span class="chip"><span class="swatch" style="background:var(--lsb-color)"></span>LSB</span>
+  <span class="chip"><span class="swatch" style="background:var(--dct-color)"></span>DCT</span>
+  <span class="chip"><span class="swatch" style="background:var(--dwt-color)"></span>DWT</span>
+  <span class="chip"><span class="swatch" style="background:transparent;border:1px solid #555"></span>Skipped / unused</span>
+`;
+
+$('btnShowMap').addEventListener('click', async () => {
+  setVizActive('btnShowMap');
+  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Rendering...</div>';
+  try {
+    const res = await fetch('/api/visualize/embedding-map', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64: state.stegoB64, sidecar: state.sidecar }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('vizBox').innerHTML = `<div class="placeholder">${data.error}</div>`; return; }
+    showImage($('vizBox'), 'data:image/png;base64,' + data.overlay_b64);
+    $('vizCaption').textContent = 'Each colored block shows which method the AIDE engine assigned it.';
+    $('vizLegend').innerHTML = methodLegendHtml;
+    $('vizLegend').classList.remove('hidden');
+  } catch (err) {
+    $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
+  }
+});
+
+$('btnShowDiff').addEventListener('click', async () => {
+  setVizActive('btnShowDiff');
+  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Rendering...</div>';
+  try {
+    const res = await fetch('/api/visualize/diff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cover_b64: dataUrlToB64(state.coverDataUrl), stego_b64: state.stegoB64 }),
+    });
+    const data = await res.json();
+    if (!res.ok) { $('vizBox').innerHTML = `<div class="placeholder">${data.error}</div>`; return; }
+    showImage($('vizBox'), 'data:image/png;base64,' + data.heatmap_b64);
+    $('vizCaption').textContent = 'Real |cover − stego| pixel difference, amplified ~10× and colorized — invisible to the eye at true magnitude, which is the point.';
+    $('vizLegend').classList.add('hidden');
+  } catch (err) {
+    $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
+  }
+});
+
+$('btnHideViz').addEventListener('click', () => {
+  $('vizBox').innerHTML = '<div class="placeholder">Choose a view above</div>';
+  $('vizCaption').textContent = '';
+  $('vizLegend').classList.add('hidden');
+  setVizActive(null);
+});
+
+function setVizActive(id) {
+  document.querySelectorAll('.viz-toggle-row button.secondary').forEach(b => b.classList.remove('active'));
+  if (id) $(id).classList.add('active');
+}
 
 // ---------- Operator: Attack types ----------
 fetch('/api/attack-types').then(r => r.json()).then(types => {
@@ -378,11 +612,45 @@ $('btnAttack').addEventListener('click', async () => {
 
     state.attackedB64 = data.attacked_b64;
     showImage($('attackedPreviewBox'), 'data:image/png;base64,' + data.attacked_b64);
-    statusLine($('attackStatus'), 'ok', 'Attack applied. Try recovering from the attacked image below.');
+    statusLine($('attackStatus'), 'ok', 'Attack applied. Try analyzing tamper below, or recover directly.');
     $('btnRecoverAttacked').classList.remove('hidden');
+    $('tamperSection').classList.remove('hidden');
+    $('tamperBox').classList.add('hidden');
+    $('tamperLegend').classList.add('hidden');
+    $('tamperStatsCol').innerHTML = '';
   } catch (err) {
     $('btnAttack').disabled = false;
     statusLine($('attackStatus'), 'err', 'Request failed: ' + err);
+  }
+});
+
+// ---------- Operator: Tamper analysis ----------
+$('btnShowTamper').addEventListener('click', async () => {
+  if (!state.attackedB64) return;
+  $('btnShowTamper').disabled = true;
+  $('tamperBox').classList.remove('hidden');
+  $('tamperBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Analyzing...</div>';
+  try {
+    const res = await fetch('/api/visualize/tamper', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64: state.attackedB64, sidecar: state.sidecar }),
+    });
+    const data = await res.json();
+    $('btnShowTamper').disabled = false;
+    if (!res.ok) { $('tamperBox').innerHTML = `<div class="placeholder">${data.error}</div>`; return; }
+
+    showImage($('tamperBox'), 'data:image/png;base64,' + data.overlay_b64);
+    $('tamperLegend').classList.remove('hidden');
+    const trusted = data.total_blocks - data.hash_mismatch_blocks;
+    $('tamperStatsCol').innerHTML = `
+      <div class="metrics" style="margin-top:0">
+        <div class="metric"><div class="value" style="color:var(--danger)">${data.erasure_blocks}</div><div class="label">Erasure blocks</div></div>
+        <div class="metric"><div class="value" style="color:var(--warn)">${data.hash_mismatch_blocks - data.erasure_blocks}</div><div class="label">Mismatch (blind-ECC)</div></div>
+        <div class="metric"><div class="value" style="color:var(--ok)">${trusted}</div><div class="label">Trusted blocks</div></div>
+      </div>`;
+  } catch (err) {
+    $('btnShowTamper').disabled = false;
+    $('tamperBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
   }
 });
 
@@ -413,9 +681,7 @@ $('btnRecoverStego').addEventListener('click', () => state.stegoB64 && doRecover
 $('btnRecoverAttacked').addEventListener('click', () => state.attackedB64 && doRecover(state.attackedB64));
 
 // ---------- Analyst: Detect ----------
-$('detectFile').addEventListener('change', async (e) => {
-  if (e.target.files[0]) showImage($('detectPreviewBox'), await fileToDataUrl(e.target.files[0]));
-});
+wireDropzone('detectDropzone', 'detectFile', 'detectFilename', 'detectPreviewBox');
 
 $('btnDetect').addEventListener('click', async () => {
   const file = $('detectFile').files[0];
@@ -458,6 +724,61 @@ $('btnDetect').addEventListener('click', async () => {
     statusLine($('detectStatus'), 'err', 'Request failed: ' + err);
   }
 });
+
+// ---------- Model Insights ----------
+let insightsLoaded = false;
+
+async function loadModelInsights() {
+  insightsLoaded = true;
+  try {
+    const res = await fetch('/api/model-info');
+    const data = await res.json();
+    const meta = data.meta || {};
+
+    $('statGrid').innerHTML = `
+      <div class="stat-card"><div class="num">${meta.num_images ?? '—'}</div><div class="lbl">Training images</div></div>
+      <div class="stat-card"><div class="num">${(meta.num_blocks ?? 0).toLocaleString()}</div><div class="lbl">Training blocks</div></div>
+      <div class="stat-card"><div class="num">${meta.method_val_accuracy ? (meta.method_val_accuracy*100).toFixed(1)+'%' : '—'}</div><div class="lbl">Method validation accuracy</div></div>
+      <div class="stat-card"><div class="num">${meta.bpp_val_mae?.toFixed(3) ?? '—'}</div><div class="lbl">Bit-rate MAE</div></div>
+      <div class="stat-card"><div class="num">${meta.training_seconds?.toFixed(1) ?? '—'}s</div><div class="lbl">Training time</div></div>
+      <div class="stat-card"><div class="num">${meta.target_psnr_db ?? '—'} dB</div><div class="lbl">Target block PSNR</div></div>
+    `;
+
+    const w = data.weights;
+    const weightMeta = [
+      ['Texture (α)', w.alpha, 'var(--lsb-color)'],
+      ['Entropy (β)', w.beta, 'var(--accent-2)'],
+      ['Variance (γ)', w.gamma, 'var(--purple)'],
+      ['Edge strength (δ)', w.delta, 'var(--dct-color)'],
+    ];
+    $('weightBars').innerHTML = weightMeta.map(([name, val, color]) => `
+      <div class="weight-row">
+        <div class="name">${name}</div>
+        <div class="weight-track"><div class="weight-fill" style="width:${(val*100).toFixed(1)}%;background:${color}"></div></div>
+        <div class="num">${val.toFixed(3)}</div>
+      </div>`).join('');
+
+    const t = data.thresholds;
+    $('thresholdTable').innerHTML = `
+      <tr><td>τ_min — confidence gate (skip below)</td><td>${t.tau_min.toFixed(4)}</td></tr>
+      <tr><td>T_low — texture(b) &lt; T_low → LSB</td><td>${t.t_low.toFixed(4)}</td></tr>
+      <tr><td>E_high — edge(b) &gt; E_high → DWT</td><td>${t.e_high.toFixed(4)}</td></tr>
+      <tr><td>Trained classifier active</td><td>${data.has_trained_classifier ? 'yes' : 'no (formula fallback)'}</td></tr>
+    `;
+
+    const dist = meta.label_distribution || {};
+    const total = Object.values(dist).reduce((a,b) => a+b, 0) || 1;
+    const distColors = { LSB: 'var(--lsb-color)', DCT: 'var(--dct-color)', DWT: 'var(--dwt-color)', SKIP: '#555' };
+    $('labelDist').innerHTML = Object.entries(dist).map(([label, count]) => `
+      <div class="weight-row">
+        <div class="name">${label}</div>
+        <div class="weight-track"><div class="weight-fill" style="width:${(100*count/total).toFixed(1)}%;background:${distColors[label] || '#888'}"></div></div>
+        <div class="num">${count.toLocaleString()}</div>
+      </div>`).join('') || '<div class="imgcaption">No label distribution recorded.</div>';
+  } catch (err) {
+    $('statGrid').innerHTML = `<div class="status-line err">Failed to load model info: ${err}</div>`;
+  }
+}
 </script>
 </body>
 </html>
