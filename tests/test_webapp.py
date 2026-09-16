@@ -109,6 +109,20 @@ def test_detect_endpoint_on_clean_image(client, real_sample_image_path):
     assert data["verdict"] in ("clean", "suspicious", "likely_steganographic")
     assert 0.0 <= data["suspicion_score"] <= 1.0
     assert len(data["row_band_profile"]) > 0
+    assert len(data["spatial_grid"]) > 0
+    assert "image_b64" in data
+
+
+def test_suspicion_heatmap_endpoint(client, real_sample_image_path):
+    with open(real_sample_image_path, "rb") as f:
+        detect_resp = client.post("/api/detect", data={"image": (f, "sample.pgm")}, content_type="multipart/form-data")
+    detect_data = detect_resp.get_json()
+
+    heatmap_resp = client.post("/api/visualize/suspicion-heatmap", json={
+        "image_b64": detect_data["image_b64"], "spatial_grid": detect_data["spatial_grid"],
+    })
+    assert heatmap_resp.status_code == 200
+    assert "overlay_b64" in heatmap_resp.get_json()
 
 
 def test_detect_endpoint_catches_naive_lsb(client, real_sample_image_path):

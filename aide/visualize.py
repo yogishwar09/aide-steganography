@@ -20,8 +20,16 @@ would ask:
    an attack?" Colors blocks by aide.tamper's verdict: erasure (red),
    hash-mismatch-but-not-erasure (amber, corrected by blind ECC instead),
    or trusted (left uncolored).
+4. `suspicion_heatmap_overlay` - "where in an *arbitrary intercepted*
+   image does the blind steganalysis in aide.steganalysis look most
+   suspicious?" Colorizes `steganalysis.spatial_suspicion_grid`'s coarse
+   chi-square grid (blue=low, red=high) over the analyzed image. Unlike
+   the other three views, this one comes with an explicit statistical
+   caveat carried over from the module it's built on: see
+   aide/steganalysis.py's docstring on why individual hot cells are
+   diagnostic, not conclusive on their own.
 
-All three operate on a single 2D grayscale/luma plane - consistent with
+All four operate on a single 2D grayscale/luma plane - consistent with
 the rest of this project's Y-plane-only design (see aide/pipeline.py).
 """
 from __future__ import annotations
@@ -35,9 +43,9 @@ from .pipeline import EmbeddingMapEntry
 
 # Matches the web console's CSS accent palette (webapp/templates/index.html)
 METHOD_COLORS: dict[str | None, tuple[int, int, int]] = {
-    "LSB": (232, 179, 57),   # --warn: least robust, flagged like a caution color
-    "DCT": (63, 208, 201),   # --accent: the main workhorse
-    "DWT": (91, 140, 255),   # --accent-2
+    "LSB": (240, 166, 62),    # --warn: least robust, flagged like a caution color
+    "DCT": (43, 214, 168),    # --dct-color: the main workhorse
+    "DWT": (124, 111, 240),   # --dwt-color / --accent
 }
 
 
@@ -75,6 +83,31 @@ def diff_heatmap(cover_gray: np.ndarray, stego_gray: np.ndarray, amplify: float 
     return Image.fromarray(rgb, mode="RGB")
 
 
+def suspicion_heatmap_overlay(gray: np.ndarray, grid: np.ndarray, alpha: float = 0.5) -> Image.Image:
+    """Colorize `aide.steganalysis.spatial_suspicion_grid`'s coarse p-value
+    grid (blue=low suspicion -> red=high) and blend it over the analyzed
+    image, upsampled with nearest-neighbor so the grid's real cell
+    boundaries stay visible rather than implying false spatial precision.
+    Diagnostic only, same caveat as the grid itself: see
+    aide/steganalysis.py's module and spatial_suspicion_grid docstrings on
+    why individual hot cells are not, on their own, conclusive."""
+    base = _base_rgba(gray)
+    h, w = gray.shape
+    grid = np.asarray(grid, dtype=np.float64)
+    gh, gw = grid.shape
+
+    # blue (cool/low) -> amber -> red (hot/high) ramp, matching the app's warn/danger palette
+    heat = np.zeros((gh, gw, 3), dtype=np.uint8)
+    heat[..., 0] = np.clip(grid * 255, 0, 255).astype(np.uint8)              # red channel rises with p
+    heat[..., 1] = np.clip((1 - np.abs(grid - 0.5) * 2) * 140, 0, 255).astype(np.uint8)  # green peaks at mid (amber transition)
+    heat[..., 2] = np.clip((1 - grid) * 255, 0, 255).astype(np.uint8)        # blue falls as p rises
+
+    heat_img = Image.fromarray(heat, mode="RGB").resize((w, h), resample=Image.NEAREST).convert("RGBA")
+    alpha_channel = Image.new("L", (w, h), int(255 * alpha))
+    heat_img.putalpha(alpha_channel)
+    return Image.alpha_composite(base, heat_img).convert("RGB")
+
+
 def tamper_overlay(gray: np.ndarray, blocks: list[Block],
                    report: tamper_mod.TamperReport, alpha: float = 0.55) -> Image.Image:
     """Red = erasure (flagged unreliable, fed to Reed-Solomon as a known
@@ -87,9 +120,9 @@ def tamper_overlay(gray: np.ndarray, blocks: list[Block],
     mismatch_a = int(255 * alpha * 0.55)
     for block in blocks:
         if report.erasure_mask[block.index]:
-            color, a = (239, 90, 90), erasure_a
+            color, a = (242, 85, 95), erasure_a      # --danger
         elif report.hash_mismatch[block.index]:
-            color, a = (232, 179, 57), mismatch_a
+            color, a = (240, 166, 62), mismatch_a    # --warn
         else:
             continue
         draw.rectangle([block.x0, block.y0, block.x1 - 1, block.y1 - 1], fill=(*color, a))

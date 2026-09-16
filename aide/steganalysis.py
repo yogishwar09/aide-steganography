@@ -99,12 +99,40 @@ def lsb_bit_balance(gray: np.ndarray) -> float:
     return abs(ones_fraction - 0.5)
 
 
+def spatial_suspicion_grid(gray: np.ndarray, grid_size: int = 4) -> np.ndarray:
+    """A coarse `grid_size` x `grid_size` grid of chi-square p-values, one
+    per rectangular region - a 2D "where in the image" view for the
+    Analyst UI's heatmap, extending `row_band_profile`'s 1D version.
+
+    Cell size matters: this deliberately uses large cells (a quarter of
+    each image dimension by default, e.g. 128x128 on a 512x512 image) -
+    NOT the small size of an AIDE embedding block (16x16). The row-band
+    false-positive regression documented in `analyze()` below happened
+    precisely because splitting the image into many small, low-power
+    tests and taking their max amplifies the false-positive rate; a 4x4
+    grid of large, statistically well-powered cells does not have that
+    problem (see tests/test_steganalysis.py for the measured comparison).
+    This is still diagnostic/display-only - it does not feed the verdict,
+    for the same multiple-testing reason `row_band_profile` doesn't."""
+    h, w = gray.shape
+    ch, cw = max(1, h // grid_size), max(1, w // grid_size)
+    grid = np.zeros((grid_size, grid_size), dtype=np.float64)
+    for i in range(grid_size):
+        for j in range(grid_size):
+            cell = gray[i * ch:(i + 1) * ch, j * cw:(j + 1) * cw]
+            if cell.size < 256 * MIN_EXPECTED_COUNT:
+                continue
+            grid[i, j] = chi_square_pov(cell)["p"]
+    return grid
+
+
 @dataclass
 class SteganalysisReport:
     chi_square_p: float          # whole-image chi-square p-value (primary signal)
     lsb_correlation: float       # bit0/bit1 correlation (secondary signal)
     lsb_bit_balance: float       # deviation from 0.5 (tertiary/weak signal)
     row_band_profile: list[float]  # chi-square p per horizontal row-band, for a spatial plot
+    spatial_grid: list[list[float]]  # 2D grid of chi-square p per region, for a heatmap overlay
     suspicion_score: float       # combined [0, 1], higher = more likely to carry hidden data
     verdict: str                 # "clean", "suspicious", or "likely_steganographic"
 
@@ -175,7 +203,10 @@ def analyze(gray: np.ndarray, n_row_bands: int = 8) -> SteganalysisReport:
     else:
         verdict = "clean"
 
+    grid = spatial_suspicion_grid(gray)
+
     return SteganalysisReport(
         chi_square_p=chi["p"], lsb_correlation=corr, lsb_bit_balance=balance,
-        row_band_profile=row_band_profile, suspicion_score=float(suspicion), verdict=verdict,
+        row_band_profile=row_band_profile, spatial_grid=grid.tolist(),
+        suspicion_score=float(suspicion), verdict=verdict,
     )
