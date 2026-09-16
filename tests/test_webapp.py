@@ -124,3 +124,54 @@ def test_detect_endpoint_catches_naive_lsb(client, real_sample_image_path):
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["verdict"] == "likely_steganographic"
+
+
+def test_model_info_endpoint(client):
+    resp = client.get("/api/model-info")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert set(data["weights"]) == {"alpha", "beta", "gamma", "delta"}
+    assert set(data["thresholds"]) == {"tau_min", "t_low", "e_high"}
+    assert "meta" in data
+
+
+def test_visualization_endpoints(client, real_sample_image_path):
+    gray = np.array(Image.open(real_sample_image_path).convert("L"))
+    cover_bytes = _png_bytes(gray)
+
+    embed_resp = client.post("/api/embed", data={
+        "cover": (io.BytesIO(cover_bytes), "cover.png"),
+        "message": "Rendezvous at grid 47N 12E at 0300 hours.",
+        "secret": "viz-test-secret",
+    }, content_type="multipart/form-data")
+    embed_data = embed_resp.get_json()
+
+    map_resp = client.post("/api/visualize/embedding-map", json={
+        "image_b64": embed_data["stego_b64"], "sidecar": embed_data["sidecar"],
+    })
+    assert map_resp.status_code == 200
+    assert "overlay_b64" in map_resp.get_json()
+
+    diff_resp = client.post("/api/visualize/diff", json={
+        "cover_b64": base64_of(cover_bytes), "stego_b64": embed_data["stego_b64"],
+    })
+    assert diff_resp.status_code == 200
+    assert "heatmap_b64" in diff_resp.get_json()
+
+    attack_resp = client.post("/api/attack", json={
+        "stego_b64": embed_data["stego_b64"], "type": "splicing", "params": {"fraction": 0.08, "seed": 1},
+    })
+    attacked_b64 = attack_resp.get_json()["attacked_b64"]
+
+    tamper_resp = client.post("/api/visualize/tamper", json={
+        "image_b64": attacked_b64, "sidecar": embed_data["sidecar"],
+    })
+    assert tamper_resp.status_code == 200
+    tamper_data = tamper_resp.get_json()
+    assert "overlay_b64" in tamper_data
+    assert tamper_data["total_blocks"] > 0
+
+
+def base64_of(data: bytes) -> str:
+    import base64
+    return base64.b64encode(data).decode("ascii")

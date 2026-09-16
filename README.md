@@ -107,6 +107,30 @@ defence/intelligence sides:
   steganalysis (`aide detect`) - verdict, suspicion score, per-signal
   breakdown, and the row-band diagnostic plot, with the same measured
   false-positive/detection-rate story documented above.
+- **Model Insights**: the trained decision engine's actual learned
+  parameters - training-set size, validation accuracy, the S(b) scoring
+  weights as a bar chart, the confidence-gate/method thresholds, and the
+  training label distribution. Makes the report's "explainable, not a
+  black box" claim concrete instead of asserted - see `aide/model.py`.
+
+### Visual analysis (`aide/visualize.py`)
+
+Three views turn the decision engine's choices and the attack's actual
+effect into images instead of only numbers, each rendered on demand from
+the Operator tab:
+
+- **Embedding map** - colors every block the engine actually used by
+  which method (LSB/DCT/DWT) embedded into it. The most direct visual
+  evidence of the report's central novelty: a learned, per-block,
+  multi-method policy, not a fixed rule - the method assignment visibly
+  tracks the cover image's texture and edges.
+- **Difference heatmap** - the real, amplified `|cover - stego|` pixel
+  difference. Honest about the fact that pixels did change (steganography
+  isn't magic), rather than only citing a PSNR number.
+- **Tamper/erasure map** (after an attack) - which blocks the receiver
+  actually trusts: red for erasure (fed to Reed-Solomon as a known-bad
+  byte range), amber for hash-mismatch-but-corrected-by-blind-ECC,
+  untouched for trusted. The concrete payoff of `aide.tamper`.
 
 Stateless by design: the Flask backend holds no session - the browser
 keeps the stego image and sidecar (as base64/JSON) between steps and
@@ -119,7 +143,9 @@ network; see the warning it prints on startup.
 
 Tested the same way as everything else: `tests/test_webapp.py` drives
 the Flask app via its test client (no live server needed) through the
-full embed → attack → recover workflow and both detection cases.
+full embed → attack → recover workflow, both detection cases, and all
+three visualization endpoints; `tests/test_visualize.py` unit-tests the
+overlay/heatmap generation directly.
 
 ## Architecture
 

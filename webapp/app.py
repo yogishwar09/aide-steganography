@@ -34,7 +34,8 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from aide import attacks, metrics, pipeline, steganalysis  # noqa: E402
+from aide import attacks, metrics, pipeline, steganalysis, visualize  # noqa: E402
+from aide.features import partition_blocks  # noqa: E402
 from aide.model import AIDEModel  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -198,6 +199,97 @@ def api_detect():
 @app.route("/api/attack-types")
 def api_attack_types():
     return jsonify(sorted(attacks.ATTACKS))
+
+
+@app.route("/api/visualize/embedding-map", methods=["POST"])
+def api_visualize_embedding_map():
+    """Color every block the AIDE engine actually used by which method
+    (LSB/DCT/DWT) embedded into it - the most direct visual evidence of
+    the adaptive, per-block, multi-method policy. See aide/visualize.py."""
+    payload = request.get_json(force=True)
+    image_b64 = payload.get("image_b64")
+    sidecar_json = payload.get("sidecar")
+    if not image_b64 or not sidecar_json:
+        return jsonify({"error": "image_b64 and sidecar are required"}), 400
+
+    tmp_path = _b64_to_temp_file(image_b64)
+    try:
+        gray = pipeline.load_image(tmp_path).y
+        sidecar = pipeline.Sidecar.from_json(sidecar_json)
+        blocks = partition_blocks(sidecar.height, sidecar.width, sidecar.block_size)
+        overlay = visualize.embedding_map_overlay(gray, blocks, sidecar.embedding_map)
+        return jsonify({"overlay_b64": _image_to_b64(overlay)})
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+@app.route("/api/visualize/diff", methods=["POST"])
+def api_visualize_diff():
+    """Real, amplified |cover - stego| heatmap - honest about the fact
+    that pixels did change, rather than only citing a PSNR number."""
+    payload = request.get_json(force=True)
+    cover_b64 = payload.get("cover_b64")
+    stego_b64 = payload.get("stego_b64")
+    if not cover_b64 or not stego_b64:
+        return jsonify({"error": "cover_b64 and stego_b64 are required"}), 400
+
+    cover_path = _b64_to_temp_file(cover_b64)
+    stego_path = _b64_to_temp_file(stego_b64)
+    try:
+        cover_gray = pipeline.load_image(cover_path).y
+        stego_gray = pipeline.load_image(stego_path).y
+        if cover_gray.shape != stego_gray.shape:
+            return jsonify({"error": "cover and stego dimensions do not match"}), 400
+        heat = visualize.diff_heatmap(cover_gray, stego_gray)
+        return jsonify({"heatmap_b64": _image_to_b64(heat)})
+    finally:
+        cover_path.unlink(missing_ok=True)
+        stego_path.unlink(missing_ok=True)
+
+
+@app.route("/api/visualize/tamper", methods=["POST"])
+def api_visualize_tamper():
+    """Which blocks does the receiver actually trust after an attack?
+    Red = erasure (fed to Reed-Solomon as a known-bad byte range), amber =
+    hash-mismatch left to blind error correction, untouched = trusted."""
+    payload = request.get_json(force=True)
+    image_b64 = payload.get("image_b64")
+    sidecar_json = payload.get("sidecar")
+    if not image_b64 or not sidecar_json:
+        return jsonify({"error": "image_b64 and sidecar are required"}), 400
+
+    tmp_path = _b64_to_temp_file(image_b64)
+    try:
+        gray = pipeline.load_image(tmp_path).y
+        sidecar = pipeline.Sidecar.from_json(sidecar_json)
+        blocks, report = visualize.tamper_report_for(gray, sidecar)
+        overlay = visualize.tamper_overlay(gray, blocks, report)
+        return jsonify({
+            "overlay_b64": _image_to_b64(overlay),
+            "erasure_blocks": int(report.erasure_mask.sum()),
+            "hash_mismatch_blocks": int(report.hash_mismatch.sum()),
+            "total_blocks": len(blocks),
+        })
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+@app.route("/api/model-info")
+def api_model_info():
+    """The learned decision engine's parameters, for the Model Insights
+    panel - the report's own 'explainable, auditable, not a black box'
+    novelty claim, made concrete."""
+    model = get_model()
+    return jsonify({
+        "weights": model.weights.as_dict(),
+        "thresholds": {
+            "tau_min": model.thresholds.tau_min,
+            "t_low": model.thresholds.t_low,
+            "e_high": model.thresholds.e_high,
+        },
+        "meta": model.meta,
+        "has_trained_classifier": model.method_clf is not None,
+    })
 
 
 if __name__ == "__main__":
