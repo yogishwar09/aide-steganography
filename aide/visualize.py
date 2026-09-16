@@ -43,9 +43,9 @@ from .pipeline import EmbeddingMapEntry
 
 # Matches the web console's CSS accent palette (webapp/templates/index.html)
 METHOD_COLORS: dict[str | None, tuple[int, int, int]] = {
-    "LSB": (240, 166, 62),    # --warn: least robust, flagged like a caution color
-    "DCT": (43, 214, 168),    # --dct-color: the main workhorse
-    "DWT": (124, 111, 240),   # --dwt-color / --accent
+    "LSB": (245, 165, 36),   # --warn: least robust, flagged like a caution color
+    "DCT": (94, 106, 210),   # --dct-color / --accent: the main workhorse
+    "DWT": (58, 167, 255),   # --dwt-color / --accent-2
 }
 
 
@@ -120,9 +120,9 @@ def tamper_overlay(gray: np.ndarray, blocks: list[Block],
     mismatch_a = int(255 * alpha * 0.55)
     for block in blocks:
         if report.erasure_mask[block.index]:
-            color, a = (242, 85, 95), erasure_a      # --danger
+            color, a = (242, 73, 94), erasure_a      # --danger
         elif report.hash_mismatch[block.index]:
-            color, a = (240, 166, 62), mismatch_a    # --warn
+            color, a = (245, 165, 36), mismatch_a    # --warn
         else:
             continue
         draw.rectangle([block.x0, block.y0, block.x1 - 1, block.y1 - 1], fill=(*color, a))
