@@ -6,469 +6,660 @@
 <title>AIDE — Secure Comms &amp; Threat Detection</title>
 <style>
   :root {
-    --bg: #0a0e14;
-    --panel: #121826;
-    --panel-2: #182236;
-    --panel-3: #1c2940;
-    --border: #253247;
-    --text: #dde6f0;
-    --text-dim: #8a99ad;
-    --accent: #3fd0c9;
+    --bg: #0a0d12;
+    --panel: #10141c;
+    --panel-2: #161b26;
+    --panel-3: #1b2231;
+    --border: #232b3a;
+    --border-soft: #1b212d;
+    --text: #e6ebf2;
+    --text-dim: #8a96a8;
+    --text-faint: #5b6576;
+    --accent: #35d0c4;
+    --accent-dim: #1f6e69;
     --accent-2: #5b8cff;
     --purple: #9b7bff;
-    --warn: #e8b339;
-    --danger: #ef5a5a;
-    --ok: #4fd67a;
+    --warn: #f0b342;
+    --danger: #f0605f;
+    --ok: #46d17f;
     --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
-    --lsb-color: #e8b339;
-    --dct-color: #3fd0c9;
+    --lsb-color: #f0b342;
+    --dct-color: #35d0c4;
     --dwt-color: #5b8cff;
+    --radius: 10px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+    --shadow-glow: 0 0 0 1px rgba(53,208,196,0.15), 0 8px 24px rgba(53,208,196,0.08);
   }
   * { box-sizing: border-box; }
-  html { font-size: 17px; scroll-behavior: smooth; }
+  html { font-size: 16px; scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    min-height: 100vh; font-size: 1rem; line-height: 1.5;
+    min-height: 100vh; font-size: 0.95rem; line-height: 1.55; -webkit-font-smoothing: antialiased;
   }
-  ::selection { background: rgba(63,208,201,0.3); }
+  ::selection { background: rgba(53,208,196,0.28); }
+  svg.icon { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
-  header {
-    padding: 22px clamp(28px, 4vw, 80px); border-bottom: 1px solid var(--border);
-    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
-    position: sticky; top: 0; background: rgba(10,14,20,0.92); backdrop-filter: blur(8px);
-    z-index: 50;
-  }
-  header h1 { font-size: 1.45rem; margin: 0; letter-spacing: 0.02em; }
-  header h1 span { color: var(--accent); }
-  header .sub { color: var(--text-dim); font-size: 0.92rem; }
-  .badge {
-    font-family: var(--mono); font-size: 0.72rem; padding: 3px 10px; border-radius: 3px;
-    background: #1c2a3f; color: var(--accent); border: 1px solid var(--border);
-  }
+  /* ---------- App shell ---------- */
+  .app-shell { display: flex; min-height: 100vh; }
 
-  .tabs {
-    display: flex; gap: 2px; padding: 0 clamp(28px, 4vw, 80px);
-    border-bottom: 1px solid var(--border); background: var(--panel);
-    position: sticky; top: 65px; z-index: 40; overflow-x: auto;
+  .sidebar {
+    width: 252px; flex-shrink: 0; background: var(--panel);
+    border-right: 1px solid var(--border-soft); display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh; z-index: 30;
   }
-  .tab {
-    padding: 16px 26px; cursor: pointer; color: var(--text-dim); font-size: 1rem;
-    border-bottom: 2px solid transparent; user-select: none; white-space: nowrap;
-    transition: color 0.15s ease;
+  .brand { padding: 22px 22px 18px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow);
   }
-  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-  .tab:hover { color: var(--text); }
+  .brand-mark svg { width: 18px; height: 18px; stroke: #05201d; stroke-width: 2.4; }
+  .brand-text .name { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em; }
+  .brand-text .tagline { font-size: 0.68rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 1px; }
 
-  .page {
-    display: none; padding: 36px clamp(28px, 4vw, 80px) 80px;
-    max-width: 1900px; margin: 0 auto; width: 100%;
+  .nav-section-label {
+    padding: 18px 22px 6px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--text-faint); font-weight: 600;
   }
+  .nav-list { display: flex; flex-direction: column; gap: 1px; padding: 0 10px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px;
+    color: var(--text-dim); cursor: pointer; font-size: 0.88rem; font-weight: 500;
+    transition: background 0.12s ease, color 0.12s ease; user-select: none;
+  }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { color: var(--text); background: var(--panel-3); }
+  .nav-item.active svg { stroke: var(--accent); }
+
+  .sidebar-footer { margin-top: auto; padding: 16px 18px 20px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.68rem;
+    padding: 9px 12px; border-radius: 8px; background: var(--panel-2); color: var(--text-dim);
+    border: 1px solid var(--border-soft);
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); flex-shrink: 0; }
+
+  .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    padding: 20px 36px; border-bottom: 1px solid var(--border-soft); display: flex;
+    align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    position: sticky; top: 0; background: rgba(10,13,18,0.85); backdrop-filter: blur(10px); z-index: 20;
+  }
+  .topbar h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  .topbar .desc { font-size: 0.82rem; color: var(--text-dim); margin-top: 3px; }
+  .content-scroll { flex: 1; padding: 30px 36px 100px; max-width: 1500px; width: 100%; margin: 0 auto; }
+  .page { display: none; }
   .page.active { display: block; }
 
+  /* ---------- Stepper ---------- */
+  .stepper { display: flex; align-items: center; margin-bottom: 30px; }
+  .step { display: flex; align-items: center; gap: 10px; }
+  .step-circle {
+    width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--panel-2); border: 2px solid var(--border); font-weight: 700; font-size: 0.8rem;
+    color: var(--text-faint); flex-shrink: 0; transition: all 0.2s ease;
+  }
+  .step.active .step-circle { border-color: var(--accent); color: var(--accent); }
+  .step.done .step-circle { background: var(--accent); border-color: var(--accent); color: #05201d; }
+  .step-label { font-size: 0.82rem; color: var(--text-faint); white-space: nowrap; }
+  .step.active .step-label, .step.done .step-label { color: var(--text); font-weight: 500; }
+  .step-connector { flex: 1; height: 2px; background: var(--border); margin: 0 14px; min-width: 20px; transition: background 0.3s ease; }
+  .step-connector.done { background: var(--accent); }
+
+  /* ---------- Cards ---------- */
   .card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-    padding: 28px 30px; margin-bottom: 24px;
-    animation: fadein 0.35s ease;
+    background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius);
+    padding: 26px 28px; margin-bottom: 22px; box-shadow: var(--shadow-sm);
+    animation: fadein 0.3s ease;
   }
   @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .card h2 {
-    font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.07em;
-    color: var(--text-dim); margin: 0 0 20px 0; font-weight: 600;
-    display: flex; align-items: center; gap: 10px;
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text-dim); margin: 0 0 20px 0; font-weight: 700; display: flex; align-items: center; gap: 8px;
   }
-  .card h2 .step-num {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
-    color: #05201d; font-size: 0.78rem; font-weight: 800; flex-shrink: 0;
-  }
-  .row { display: flex; gap: 28px; flex-wrap: wrap; }
+  .card h2 svg { stroke: var(--text-faint); }
+  .row { display: flex; gap: 26px; flex-wrap: wrap; }
   .col { flex: 1; min-width: 260px; }
-  .row.split .form-col { flex: 0 0 380px; min-width: 320px; }
+  .row.split .form-col { flex: 0 0 370px; min-width: 320px; }
   .row.split .img-col { flex: 1; min-width: 340px; }
 
-  label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 7px; margin-top: 18px; }
+  label { display: block; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 7px; margin-top: 18px; font-weight: 500; }
   label:first-child { margin-top: 0; }
   input[type=text], input[type=password], textarea, select {
     width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-    padding: 11px 13px; border-radius: 7px; font-size: 0.95rem; font-family: inherit;
-    transition: border-color 0.15s ease;
+    padding: 10px 13px; border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
   input[type=text]:focus, input[type=password]:focus, textarea:focus, select:focus {
-    outline: none; border-color: var(--accent);
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(53,208,196,0.12);
   }
-  textarea { resize: vertical; min-height: 90px; font-family: var(--mono); line-height: 1.5; }
+  textarea { resize: vertical; min-height: 90px; font-family: var(--mono); line-height: 1.5; font-size: 0.84rem; }
+  select { cursor: pointer; }
 
-  /* Drag-and-drop upload zone */
+  /* ---------- Dropzone ---------- */
   .dropzone {
-    border: 1.5px dashed var(--border); border-radius: 10px; padding: 22px 16px;
+    border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 26px 16px;
     text-align: center; cursor: pointer; background: var(--panel-2);
-    transition: border-color 0.15s ease, background 0.15s ease;
-    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease; position: relative; overflow: hidden;
   }
   .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--panel-3); }
   .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .dropzone .dz-icon { font-size: 1.6rem; margin-bottom: 4px; }
-  .dropzone .dz-text { font-size: 0.85rem; color: var(--text-dim); }
-  .dropzone .dz-filename { font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-top: 4px; word-break: break-all; }
-
-  button {
-    background: var(--accent); color: #05201d; border: none; padding: 12px 22px;
-    border-radius: 7px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 20px;
-    transition: filter 0.12s ease, transform 0.08s ease;
+  .dropzone .dz-icon { color: var(--text-faint); margin-bottom: 8px; }
+  .dropzone .dz-icon svg { width: 26px; height: 26px; }
+  .dropzone .dz-text { font-size: 0.82rem; color: var(--text-dim); }
+  .dropzone .dz-hint { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
+  .dropzone.has-file { padding: 10px; }
+  .dropzone .dz-preview { display: none; align-items: center; gap: 10px; text-align: left; padding: 4px; }
+  .dropzone.has-file .dz-preview { display: flex; }
+  .dropzone.has-file .dz-empty { display: none; }
+  .dz-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .dz-preview .dz-filename { font-size: 0.82rem; color: var(--text); font-weight: 500; word-break: break-all; }
+  .dz-preview .dz-filesize { font-size: 0.72rem; color: var(--text-faint); margin-top: 1px; }
+  .dz-remove {
+    margin-left: auto; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-3);
+    display: flex; align-items: center; justify-content: center; color: var(--text-dim); flex-shrink: 0;
+    cursor: pointer; position: relative; z-index: 2;
   }
-  button:hover { filter: brightness(1.08); }
-  button:active { transform: scale(0.98); }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
-  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 8px 16px; font-size: 0.85rem; margin-top: 10px; }
-  button.ghost:hover { background: rgba(63,208,201,0.1); }
+  .dz-remove:hover { background: var(--danger); color: #2a0505; }
+  .dz-remove svg { width: 14px; height: 14px; }
+
+  /* ---------- Buttons ---------- */
+  button {
+    background: var(--accent); color: #05201d; border: none; padding: 11px 20px;
+    border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; margin-top: 18px;
+    transition: filter 0.12s ease, transform 0.08s ease; display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+  button.secondary { background: var(--panel-3); color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { background: var(--panel-2); border-color: var(--accent); filter: none; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent-dim); padding: 8px 16px; font-size: 0.82rem; }
+  button.ghost:hover { background: rgba(53,208,196,0.08); filter: none; }
+  button.icon-btn { padding: 8px 10px; margin-top: 0; }
   button.danger { background: var(--danger); color: #2a0505; }
   .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .viz-toggle-row button.secondary.active { background: var(--accent); color: #05201d; border-color: var(--accent); }
 
+  /* ---------- Image display ---------- */
   .imgbox {
-    border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #000;
-    display: flex; align-items: center; justify-content: center; min-height: 340px;
-    position: relative;
+    border: 1px solid var(--border-soft); border-radius: var(--radius); overflow: hidden; background: #05070a;
+    display: flex; align-items: center; justify-content: center; min-height: 320px; position: relative;
   }
-  .imgbox img { max-width: 100%; max-height: 560px; display: block; }
-  .imgbox .placeholder { color: var(--text-dim); font-size: 0.9rem; padding: 40px; text-align: center; }
-  .imgcaption { font-size: 0.85rem; color: var(--text-dim); margin-top: 8px; text-align: center; }
+  .imgbox img { max-width: 100%; max-height: 540px; display: block; }
+  .imgbox .placeholder { color: var(--text-faint); font-size: 0.85rem; padding: 40px; text-align: center; }
+  .imgcaption { font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; text-align: center; }
+  .imgbox-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .imgbox-header .imgcaption { margin: 0; text-align: left; }
 
-  .metrics { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 22px; }
-  .metric { background: var(--panel-2); border-radius: 10px; padding: 16px 22px; min-width: 120px; }
-  .metric .value { font-family: var(--mono); font-size: 1.55rem; font-weight: 600; }
-  .metric .label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  /* ---------- Metrics / stats ---------- */
+  .metrics { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 22px; }
+  .metric {
+    background: var(--panel-2); border-radius: var(--radius); padding: 15px 20px; min-width: 116px;
+    border: 1px solid var(--border-soft);
+  }
+  .metric .value { font-family: var(--mono); font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .metric .label { font-size: 0.7rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
 
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 14px; }
+  .stat-card {
+    background: var(--panel-2); border-radius: var(--radius); padding: 17px 19px; border: 1px solid var(--border-soft);
+    transition: border-color 0.15s ease;
+  }
+  .stat-card:hover { border-color: var(--accent-dim); }
+  .stat-card .num { font-family: var(--mono); font-size: 1.45rem; font-weight: 700; color: var(--accent); }
+  .stat-card .lbl { font-size: 0.72rem; color: var(--text-faint); margin-top: 5px; }
+
+  /* ---------- Verdicts / gauges ---------- */
   .verdict {
-    display: inline-block; padding: 13px 26px; border-radius: 10px; font-weight: 700;
-    font-size: 1.1rem; letter-spacing: 0.02em; margin-bottom: 4px;
+    display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; border-radius: var(--radius);
+    font-weight: 700; font-size: 1.02rem; letter-spacing: 0.01em; margin-bottom: 4px;
   }
-  .verdict.clean { background: rgba(79,214,122,0.15); color: var(--ok); border: 1px solid var(--ok); }
-  .verdict.suspicious { background: rgba(232,179,57,0.15); color: var(--warn); border: 1px solid var(--warn); }
-  .verdict.likely_steganographic { background: rgba(239,90,90,0.15); color: var(--danger); border: 1px solid var(--danger); }
+  .verdict svg { width: 20px; height: 20px; }
+  .verdict.clean { background: rgba(70,209,127,0.12); color: var(--ok); border: 1px solid rgba(70,209,127,0.4); }
+  .verdict.suspicious { background: rgba(240,179,66,0.12); color: var(--warn); border: 1px solid rgba(240,179,66,0.4); }
+  .verdict.likely_steganographic { background: rgba(240,96,95,0.12); color: var(--danger); border: 1px solid rgba(240,96,95,0.4); }
 
-  .gauge-track { background: var(--panel-2); border-radius: 6px; height: 12px; overflow: hidden; margin-top: 10px; }
+  .gauge-track { background: var(--panel-2); border-radius: 6px; height: 10px; overflow: hidden; margin-top: 9px; border: 1px solid var(--border-soft); }
   .gauge-fill { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
 
-  .bandbars { display: flex; gap: 4px; align-items: flex-end; height: 80px; margin-top: 12px; }
-  .bandbar { flex: 1; background: var(--accent-2); border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s ease; }
+  .bandbars { display: flex; gap: 4px; align-items: flex-end; height: 76px; margin-top: 12px; }
+  .bandbar { flex: 1; background: var(--accent-2); border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s ease; opacity: 0.85; }
 
-  .status-line { font-family: var(--mono); font-size: 0.88rem; padding: 12px 16px; border-radius: 7px; margin-top: 16px; }
-  .status-line.ok { background: rgba(79,214,122,0.1); color: var(--ok); border: 1px solid rgba(79,214,122,0.3); }
-  .status-line.err { background: rgba(239,90,90,0.1); color: var(--danger); border: 1px solid rgba(239,90,90,0.3); }
-  .status-line.info { background: rgba(91,140,255,0.1); color: var(--accent-2); border: 1px solid rgba(91,140,255,0.3); }
+  /* ---------- Toasts ---------- */
+  .toast-container { position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; max-width: 360px; }
+  .toast {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 13px 16px;
+    display: flex; align-items: flex-start; gap: 10px; box-shadow: var(--shadow-md);
+    animation: toast-in 0.25s ease; font-size: 0.83rem; line-height: 1.4;
+  }
+  @keyframes toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+  .toast.ok { border-left: 3px solid var(--ok); }
+  .toast.err { border-left: 3px solid var(--danger); }
+  .toast.info { border-left: 3px solid var(--accent-2); }
+  .toast svg { flex-shrink: 0; margin-top: 1px; }
+  .toast.ok svg { color: var(--ok); }
+  .toast.err svg { color: var(--danger); }
+  .toast.info svg { color: var(--accent-2); }
+  .toast .msg { flex: 1; font-family: var(--mono); color: var(--text); }
 
+  /* ---------- Misc ---------- */
   .msgbox {
-    font-family: var(--mono); background: var(--panel-2); border: 1px solid var(--border);
-    border-radius: 7px; padding: 14px 16px; margin-top: 12px; white-space: pre-wrap; word-break: break-word;
-    font-size: 0.95rem; line-height: 1.55;
+    font-family: var(--mono); background: var(--panel-2); border: 1px solid var(--border-soft);
+    border-radius: 9px; padding: 15px 17px; margin-top: 12px; white-space: pre-wrap; word-break: break-word;
+    font-size: 0.88rem; line-height: 1.55; position: relative;
   }
-
   .disclaimer {
-    font-size: 0.86rem; color: var(--text-dim); line-height: 1.55; padding: 16px 20px;
-    background: var(--panel-2); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 24px;
+    font-size: 0.83rem; color: var(--text-dim); line-height: 1.55; padding: 15px 19px;
+    background: var(--panel-2); border-radius: var(--radius); border: 1px solid var(--border-soft); margin-bottom: 22px;
+    display: flex; gap: 12px; align-items: flex-start;
   }
-  .disclaimer a, .disclaimer code { color: var(--accent); }
-  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; }
+  .disclaimer svg { flex-shrink: 0; margin-top: 2px; color: var(--accent); }
+  .disclaimer code { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel-3); padding: 2px 6px; border-radius: 4px; }
 
   .spinner {
-    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25);
-    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 7px;
-    vertical-align: -2px;
+    display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.25);
+    border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .hidden { display: none !important; }
 
-  /* legend chips for overlay visualizations */
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 0.82rem; color: var(--text-dim); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-size: 0.8rem; color: var(--text-dim); }
   .legend .chip { display: inline-flex; align-items: center; gap: 6px; }
-  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
 
-  .viz-toggle-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-  .viz-toggle-row button.active { background: var(--accent); color: #05201d; }
-
-  /* Model insights */
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
-  .stat-card { background: var(--panel-2); border-radius: 10px; padding: 18px 20px; border: 1px solid var(--border); }
-  .stat-card .num { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--accent); }
-  .stat-card .lbl { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
-
-  .weight-row { display: grid; grid-template-columns: 140px 1fr 70px; align-items: center; gap: 14px; margin-top: 14px; }
+  .weight-row { display: grid; grid-template-columns: 150px 1fr 68px; align-items: center; gap: 14px; margin-top: 13px; }
   .weight-row:first-of-type { margin-top: 0; }
-  .weight-row .name { font-size: 0.9rem; }
-  .weight-row .num { font-family: var(--mono); font-size: 0.88rem; text-align: right; color: var(--text-dim); }
-  .weight-track { background: var(--panel-2); border-radius: 6px; height: 16px; overflow: hidden; }
-  .weight-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+  .weight-row .name { font-size: 0.86rem; }
+  .weight-row .num { font-family: var(--mono); font-size: 0.84rem; text-align: right; color: var(--text-dim); }
+  .weight-track { background: var(--panel-2); border-radius: 6px; height: 15px; overflow: hidden; border: 1px solid var(--border-soft); }
+  .weight-fill { height: 100%; border-radius: 6px; transition: width 0.6s cubic-bezier(.2,.8,.2,1); }
 
-  table.info-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  table.info-table td { padding: 9px 4px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  table.info-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  table.info-table td { padding: 10px 4px; border-bottom: 1px solid var(--border-soft); font-size: 0.86rem; }
   table.info-table td:first-child { color: var(--text-dim); }
   table.info-table td:last-child { font-family: var(--mono); text-align: right; }
 
-  .section-divider { border: none; border-top: 1px solid var(--border); margin: 26px 0; }
+  .section-divider { border: none; border-top: 1px solid var(--border-soft); margin: 24px 0; }
+  .icon-btn-inline { background: none; border: none; padding: 4px; margin: 0; color: var(--text-faint); cursor: pointer; }
+  .icon-btn-inline:hover { color: var(--accent); filter: none; }
 
-  @media (max-width: 720px) {
-    .weight-row { grid-template-columns: 100px 1fr 60px; }
+  .donut-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 68px; }
+    .brand-text, .nav-item span.label, .nav-section-label, .sidebar-footer .status-pill span { display: none; }
+    .nav-item { justify-content: center; }
+    .brand { justify-content: center; padding: 20px 0; }
+    .content-scroll { padding: 24px 18px 80px; }
+    .topbar { padding: 18px 20px; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <h1><span>AIDE</span> Command Console</h1>
-  <span class="sub">Adaptive Intelligent Dynamic Embedding — secure comms, steganalysis &amp; model insight</span>
-  <span class="badge">LOCAL · NOT CONNECTED TO NETWORK</span>
-</header>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="name">AIDE</div>
+        <div class="tagline">Command Console</div>
+      </div>
+    </div>
 
-<div class="tabs">
-  <div class="tab active" data-page="operator">🛰&nbsp; Operator — Secure Communication</div>
-  <div class="tab" data-page="analyst">🔍&nbsp; Analyst — Threat Detection</div>
-  <div class="tab" data-page="insights">🧠&nbsp; Model Insights</div>
-</div>
+    <div class="nav-section-label">Workspace</div>
+    <nav class="nav-list">
+      <div class="nav-item active" data-page="operator" data-title="Operator — Secure Communication" data-desc="Embed, attack, and recover encrypted messages through cover images.">
+        <svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+        <span class="label">Operator</span>
+      </div>
+      <div class="nav-item" data-page="analyst" data-title="Analyst — Threat Detection" data-desc="Blind steganalysis on an arbitrary intercepted image. No secret required.">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span class="label">Analyst</span>
+      </div>
+      <div class="nav-item" data-page="insights" data-title="Model Insights" data-desc="What the trained decision engine actually learned — not a description of it.">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg>
+        <span class="label">Model Insights</span>
+      </div>
+    </nav>
 
-<!-- ============ OPERATOR PAGE ============ -->
-<div class="page active" id="page-operator">
-  <div class="disclaimer">
-    <strong>Operator mode.</strong> Embed an encrypted message into a cover image (AES-256-GCM + Reed-Solomon
-    ECC + adaptive LSB/DCT/DWT embedding), simulate an interception attack, and confirm recovery.
-    See <code>README.md</code> for what's measured to actually survive which attacks.
-  </div>
+    <div class="sidebar-footer">
+      <div class="status-pill"><span class="status-dot"></span><span>Local · offline-capable</span></div>
+    </div>
+  </aside>
 
-  <div class="card">
-    <h2><span class="step-num">1</span> Embed</h2>
-    <div class="row split">
-      <div class="col form-col">
-        <label>Cover image</label>
-        <div class="dropzone" id="coverDropzone">
-          <input type="file" id="coverFile" accept="image/*">
-          <div class="dz-icon">📁</div>
-          <div class="dz-text">Drop an image here, or click to browse</div>
-          <div class="dz-filename" id="coverFilename"></div>
+  <div class="main-area">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Operator — Secure Communication</h1>
+        <div class="desc" id="pageDesc">Embed, attack, and recover encrypted messages through cover images.</div>
+      </div>
+    </header>
+
+    <div class="content-scroll">
+
+      <!-- ============ OPERATOR PAGE ============ -->
+      <div class="page active" id="page-operator">
+        <div class="disclaimer">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div>AES-256-GCM + Reed-Solomon ECC + adaptive LSB/DCT/DWT embedding. See <code>README.md</code> for what's measured to actually survive which attacks.</div>
         </div>
-        <label>Secret message</label>
-        <textarea id="messageText">CLASSIFIED SITREP: Convoy Alpha departs staging area 0600Z, route Bravo-7. Escort confirmed, rendezvous at checkpoint Delta.</textarea>
-        <label>Shared secret (key material)</label>
-        <input type="password" id="secretKey" value="defence-shared-secret-2026">
-        <button id="btnEmbed">Embed message</button>
-        <div id="embedStatus"></div>
-      </div>
-      <div class="col img-col">
-        <div class="imgbox" id="coverPreviewBox"><div class="placeholder">Cover image preview</div></div>
-        <div class="imgcaption">Cover (original)</div>
-      </div>
-      <div class="col img-col">
-        <div class="imgbox" id="stegoPreviewBox"><div class="placeholder">Stego image will appear here</div></div>
-        <div class="imgcaption">Stego (message embedded)</div>
-      </div>
-    </div>
-    <div class="metrics hidden" id="embedMetrics"></div>
 
-    <div class="hidden" id="vizSection">
-      <hr class="section-divider">
-      <label style="margin-top:0">🔬 Visual analysis — see exactly what the adaptive engine did</label>
-      <div class="viz-toggle-row">
-        <button class="secondary" id="btnShowMap">Embedding map (which block, which method)</button>
-        <button class="secondary" id="btnShowDiff">Difference heatmap (cover vs. stego)</button>
-        <button class="secondary" id="btnHideViz">Hide</button>
-      </div>
-      <div class="row" style="margin-top:16px">
-        <div class="col">
-          <div class="imgbox" id="vizBox"><div class="placeholder">Choose a view above</div></div>
-          <div class="imgcaption" id="vizCaption"></div>
-          <div class="legend hidden" id="vizLegend"></div>
+        <div class="stepper" id="stepper">
+          <div class="step active" data-step="1"><div class="step-circle">1</div><div class="step-label">Embed</div></div>
+          <div class="step-connector" data-conn="1"></div>
+          <div class="step" data-step="2"><div class="step-circle">2</div><div class="step-label">Attack</div></div>
+          <div class="step-connector" data-conn="2"></div>
+          <div class="step" data-step="3"><div class="step-circle">3</div><div class="step-label">Tamper check</div></div>
+          <div class="step-connector" data-conn="3"></div>
+          <div class="step" data-step="4"><div class="step-circle">4</div><div class="step-label">Recover</div></div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card hidden" id="attackCard">
-    <h2><span class="step-num">2</span> Simulate interception attack (optional)</h2>
-    <div class="row split">
-      <div class="col form-col">
-        <label>Attack type</label>
-        <select id="attackType"></select>
-        <label>Parameters (JSON, optional)</label>
-        <input type="text" id="attackParams" placeholder='{"quality": 50}'>
-        <button id="btnAttack" class="secondary">Apply attack</button>
-        <div id="attackStatus"></div>
-      </div>
-      <div class="col img-col">
-        <div class="imgbox" id="attackedPreviewBox"><div class="placeholder">Attacked image will appear here</div></div>
-        <div class="imgcaption">After attack</div>
-      </div>
-    </div>
+        <div class="card">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Embed a message</h2>
+          <div class="row split">
+            <div class="col form-col">
+              <label>Cover image</label>
+              <div class="dropzone" id="coverDropzone">
+                <input type="file" id="coverFile" accept="image/*">
+                <div class="dz-empty">
+                  <div class="dz-icon"><svg class="icon" viewBox="0 0 24 24" style="width:26px;height:26px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+                  <div class="dz-text">Drop an image here, or click to browse</div>
+                  <div class="dz-hint">Real photographs with texture work best</div>
+                </div>
+                <div class="dz-preview">
+                  <img id="coverThumb" src="">
+                  <div>
+                    <div class="dz-filename" id="coverFilename"></div>
+                    <div class="dz-filesize" id="coverFilesize"></div>
+                  </div>
+                  <div class="dz-remove" id="coverRemove"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+                </div>
+              </div>
+              <label>Secret message</label>
+              <textarea id="messageText">CLASSIFIED SITREP: Convoy Alpha departs staging area 0600Z, route Bravo-7. Escort confirmed, rendezvous at checkpoint Delta.</textarea>
+              <label>Shared secret (key material)</label>
+              <input type="password" id="secretKey" value="defence-shared-secret-2026">
+              <button id="btnEmbed"><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Embed message</button>
+            </div>
+            <div class="col img-col">
+              <div class="imgcaption">Cover (original)</div>
+              <div class="imgbox" id="coverPreviewBox"><div class="placeholder">Cover image preview</div></div>
+            </div>
+            <div class="col img-col">
+              <div class="imgcaption">Stego (message embedded)</div>
+              <div class="imgbox" id="stegoPreviewBox"><div class="placeholder">Stego image will appear here</div></div>
+              <div class="btn-row hidden" id="stegoActions">
+                <a id="btnDownloadStego" class="ghost" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--accent-dim);border-radius:8px;color:var(--accent);font-size:0.8rem;margin-top:10px;cursor:pointer">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="metrics hidden" id="embedMetrics"></div>
 
-    <div class="hidden" id="tamperSection">
-      <hr class="section-divider">
-      <label style="margin-top:0">🛡 Tamper localization — which blocks does the receiver still trust?</label>
-      <div class="btn-row">
-        <button class="secondary" id="btnShowTamper">Analyze tamper / erasure map</button>
-      </div>
-      <div class="row" style="margin-top:16px" id="tamperResultRow">
-        <div class="col">
-          <div class="imgbox hidden" id="tamperBox"></div>
-          <div class="legend hidden" id="tamperLegend">
-            <span class="chip"><span class="swatch" style="background:#ef5a5a"></span>Erasure (fed to ECC as known-bad)</span>
-            <span class="chip"><span class="swatch" style="background:#e8b339"></span>Hash mismatch (left to blind ECC)</span>
-            <span class="chip"><span class="swatch" style="background:transparent;border:1px solid #555"></span>Trusted</span>
+          <div class="hidden" id="vizSection">
+            <hr class="section-divider">
+            <label style="margin-top:0">Visual analysis — see exactly what the adaptive engine did</label>
+            <div class="viz-toggle-row btn-row">
+              <button class="secondary" id="btnShowMap"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Embedding map</button>
+              <button class="secondary" id="btnShowDiff"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>Difference heatmap</button>
+              <button class="secondary" id="btnHideViz">Hide</button>
+            </div>
+            <div class="row" style="margin-top:16px">
+              <div class="col">
+                <div class="imgbox" id="vizBox"><div class="placeholder">Choose a view above</div></div>
+                <div class="imgcaption" id="vizCaption"></div>
+                <div class="legend hidden" id="vizLegend"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="col" id="tamperStatsCol"></div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card hidden" id="recoverCard">
-    <h2><span class="step-num">3</span> Recover</h2>
-    <div class="row">
-      <div class="col">
-        <button id="btnRecoverStego">Recover from stego (no attack)</button>
-        <button id="btnRecoverAttacked" class="secondary hidden">Recover from attacked image</button>
-      </div>
-      <div class="col" style="flex:2">
-        <div id="recoverStatus"></div>
-        <div class="msgbox hidden" id="recoveredMessage"></div>
-      </div>
-    </div>
-  </div>
-</div>
+        <div class="card hidden" id="attackCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Simulate interception attack</h2>
+          <div class="row split">
+            <div class="col form-col">
+              <label>Attack type</label>
+              <select id="attackType"></select>
+              <label>Parameters (JSON, optional)</label>
+              <input type="text" id="attackParams" placeholder='{"quality": 50}'>
+              <button class="secondary" id="btnAttack">Apply attack</button>
+            </div>
+            <div class="col img-col">
+              <div class="imgcaption">After attack</div>
+              <div class="imgbox" id="attackedPreviewBox"><div class="placeholder">Attacked image will appear here</div></div>
+            </div>
+          </div>
 
-<!-- ============ ANALYST PAGE ============ -->
-<div class="page" id="page-analyst">
-  <div class="disclaimer">
-    <strong>Analyst mode — blind steganalysis.</strong> Upload any intercepted image. No secret, no sidecar,
-    no assumption about how (or whether) it was modified. Uses the classical chi-square pairs-of-values
-    attack plus corroborating LSB signals — see <code>aide/steganalysis.py</code> for the measured false-positive
-    rate (1/40 on clean images) and honest limits (naive spatial LSB only; AIDE's own adaptive stego evades this
-    specific detector).
-  </div>
-
-  <div class="card">
-    <h2>Analyze an image</h2>
-    <div class="row split">
-      <div class="col form-col">
-        <label>Suspect image</label>
-        <div class="dropzone" id="detectDropzone">
-          <input type="file" id="detectFile" accept="image/*">
-          <div class="dz-icon">🔎</div>
-          <div class="dz-text">Drop an image here, or click to browse</div>
-          <div class="dz-filename" id="detectFilename"></div>
+          <div class="hidden" id="tamperSection">
+            <hr class="section-divider">
+            <label style="margin-top:0">Tamper localization — which blocks does the receiver still trust?</label>
+            <div class="btn-row">
+              <button class="secondary" id="btnShowTamper"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Analyze tamper / erasure map</button>
+            </div>
+            <div class="row" style="margin-top:16px">
+              <div class="col">
+                <div class="imgbox hidden" id="tamperBox"></div>
+                <div class="legend hidden" id="tamperLegend">
+                  <span class="chip"><span class="swatch" style="background:var(--danger)"></span>Erasure (fed to ECC as known-bad)</span>
+                  <span class="chip"><span class="swatch" style="background:var(--warn)"></span>Hash mismatch (blind ECC)</span>
+                  <span class="chip"><span class="swatch" style="background:transparent;border:1px solid var(--text-faint)"></span>Trusted</span>
+                </div>
+              </div>
+              <div class="col" id="tamperStatsCol"></div>
+            </div>
+          </div>
         </div>
-        <button id="btnDetect">Analyze</button>
-        <div id="detectStatus"></div>
-      </div>
-      <div class="col img-col">
-        <div class="imgbox" id="detectPreviewBox"><div class="placeholder">Image preview</div></div>
-      </div>
-    </div>
-  </div>
 
-  <div class="card hidden" id="detectResultCard">
-    <h2>Threat assessment</h2>
-    <div id="verdictBox"></div>
-    <div class="row" style="margin-top:18px">
-      <div class="col">
-        <label style="margin-top:0">Chi-square p-value (primary signal)</label>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeChi" style="background:var(--accent)"></div></div>
-        <label>LSB / next-bit-plane correlation (corroborating)</label>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeCorr" style="background:var(--accent-2)"></div></div>
-        <label>LSB bit-balance deviation (weak signal)</label>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeBalance" style="background:var(--warn)"></div></div>
+        <div class="card hidden" id="recoverCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Recover</h2>
+          <div class="row">
+            <div class="col">
+              <div class="btn-row">
+                <button id="btnRecoverStego">Recover from stego (no attack)</button>
+                <button id="btnRecoverAttacked" class="secondary hidden">Recover from attacked image</button>
+              </div>
+            </div>
+            <div class="col" style="flex:2">
+              <div id="recoverStatusHolder"></div>
+              <div class="msgbox hidden" id="recoveredMessage">
+                <button class="icon-btn-inline" id="btnCopyMessage" style="position:absolute;top:10px;right:10px" title="Copy">
+                  <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+                <span id="recoveredMessageText"></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col">
-        <label style="margin-top:0">Row-band profile (diagnostic only — not part of verdict)</label>
-        <div class="bandbars" id="bandBars"></div>
+
+      <!-- ============ ANALYST PAGE ============ -->
+      <div class="page" id="page-analyst">
+        <div class="disclaimer">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div>No secret, no sidecar, no assumption about how (or whether) an image was modified. Classical chi-square pairs-of-values attack plus corroborating LSB signals — see <code>aide/steganalysis.py</code> for the measured 1/40 false-positive rate.</div>
+        </div>
+
+        <div class="card">
+          <h2><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyze an image</h2>
+          <div class="row split">
+            <div class="col form-col">
+              <label>Suspect image</label>
+              <div class="dropzone" id="detectDropzone">
+                <input type="file" id="detectFile" accept="image/*">
+                <div class="dz-empty">
+                  <div class="dz-icon"><svg class="icon" viewBox="0 0 24 24" style="width:26px;height:26px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+                  <div class="dz-text">Drop an image here, or click to browse</div>
+                  <div class="dz-hint">Any image — clean, suspect, or AIDE-embedded</div>
+                </div>
+                <div class="dz-preview">
+                  <img id="detectThumb" src="">
+                  <div>
+                    <div class="dz-filename" id="detectFilename"></div>
+                    <div class="dz-filesize" id="detectFilesize"></div>
+                  </div>
+                  <div class="dz-remove" id="detectRemove"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+                </div>
+              </div>
+              <button id="btnDetect"><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Analyze</button>
+            </div>
+            <div class="col img-col">
+              <div class="imgbox" id="detectPreviewBox"><div class="placeholder">Image preview</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="detectResultCard">
+          <h2>Threat assessment</h2>
+          <div id="verdictBox"></div>
+          <div class="row" style="margin-top:18px">
+            <div class="col">
+              <label style="margin-top:0">Chi-square p-value (primary signal)</label>
+              <div class="gauge-track"><div class="gauge-fill" id="gaugeChi" style="background:var(--accent)"></div></div>
+              <label>LSB / next-bit-plane correlation (corroborating)</label>
+              <div class="gauge-track"><div class="gauge-fill" id="gaugeCorr" style="background:var(--accent-2)"></div></div>
+              <label>LSB bit-balance deviation (weak signal)</label>
+              <div class="gauge-track"><div class="gauge-fill" id="gaugeBalance" style="background:var(--warn)"></div></div>
+            </div>
+            <div class="col">
+              <label style="margin-top:0">Row-band profile (diagnostic only — not part of verdict)</label>
+              <div class="bandbars" id="bandBars"></div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- ============ MODEL INSIGHTS PAGE ============ -->
+      <div class="page" id="page-insights">
+        <div class="disclaimer">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div>The report's own claim is that AIDE's scoring is &ldquo;explainable, auditable, not a black box.&rdquo; This page shows exactly what the trained decision engine learned.</div>
+        </div>
+
+        <div class="card">
+          <h2><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Training snapshot</h2>
+          <div class="stat-grid" id="statGrid"></div>
+        </div>
+
+        <div class="card">
+          <h2>Learned scoring weights — S(b) = &alpha;&middot;texture + &beta;&middot;entropy + &gamma;&middot;variance + &delta;&middot;edge</h2>
+          <div id="weightBars"></div>
+        </div>
+
+        <div class="row">
+          <div class="col card" style="margin:0">
+            <h2>Confidence gate &amp; method thresholds</h2>
+            <table class="info-table" id="thresholdTable"></table>
+          </div>
+          <div class="col card" style="margin:0">
+            <h2>Training label distribution</h2>
+            <div class="donut-wrap" id="labelDist"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<!-- ============ MODEL INSIGHTS PAGE ============ -->
-<div class="page" id="page-insights">
-  <div class="disclaimer">
-    <strong>Model insights.</strong> The report's own claim is that AIDE's scoring is
-    &ldquo;explainable, auditable, not a black box.&rdquo; This page shows exactly what the trained decision
-    engine learned — not a description of it.
-  </div>
-
-  <div class="card">
-    <h2>Training snapshot</h2>
-    <div class="stat-grid" id="statGrid"></div>
-  </div>
-
-  <div class="card">
-    <h2>Learned scoring weights &nbsp;—&nbsp; S(b) = &alpha;&middot;texture + &beta;&middot;entropy + &gamma;&middot;variance + &delta;&middot;edge</h2>
-    <div id="weightBars"></div>
-  </div>
-
-  <div class="row">
-    <div class="col card" style="margin:0">
-      <h2>Confidence gate &amp; method thresholds</h2>
-      <table class="info-table" id="thresholdTable"></table>
-    </div>
-    <div class="col card" style="margin:0">
-      <h2>Training label distribution</h2>
-      <div id="labelDist"></div>
-    </div>
-  </div>
-</div>
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
+const ICON = {
+  ok: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  err: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  info: '<svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+};
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+// ---------- Navigation ----------
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    $('page-' + tab.dataset.page).classList.add('active');
-    if (tab.dataset.page === 'insights' && !insightsLoaded) loadModelInsights();
+    item.classList.add('active');
+    $('page-' + item.dataset.page).classList.add('active');
+    $('pageTitle').textContent = item.dataset.title;
+    $('pageDesc').textContent = item.dataset.desc;
+    if (item.dataset.page === 'insights' && !insightsLoaded) loadModelInsights();
   });
 });
 
-function statusLine(el, kind, text) {
-  el.innerHTML = `<div class="status-line ${kind}">${text}</div>`;
+// ---------- Toasts ----------
+function toast(kind, text, timeout = 4200) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = `${ICON[kind] || ICON.info}<div class="msg">${text}</div>`;
+  $('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, timeout);
 }
-function showImage(box, dataUrl) {
-  box.innerHTML = `<img src="${dataUrl}">`;
-}
-function fileToDataUrl(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsDataURL(file);
-  });
-}
-function dataUrlToB64(dataUrl) {
-  return dataUrl.split(',')[1];
+function statusInline(el, kind, text) {
+  // lightweight inline fallback (used for the recover panel, which benefits from a persistent line)
+  el.innerHTML = `<div style="font-family:var(--mono);font-size:0.85rem;padding:11px 15px;border-radius:8px;margin-top:14px;
+    background:${kind==='ok'?'rgba(70,209,127,0.1)':kind==='err'?'rgba(240,96,95,0.1)':'rgba(91,140,255,0.1)'};
+    color:${kind==='ok'?'var(--ok)':kind==='err'?'var(--danger)':'var(--accent-2)'};
+    border:1px solid ${kind==='ok'?'rgba(70,209,127,0.3)':kind==='err'?'rgba(240,96,95,0.3)':'rgba(91,140,255,0.3)'}">${text}</div>`;
 }
 
-// ---------- Generic dropzone wiring ----------
-function wireDropzone(zoneId, inputId, filenameId, previewBoxId, onFile) {
-  const zone = $(zoneId), input = $(inputId), fname = $(filenameId);
+function showImage(box, dataUrl) { box.innerHTML = `<img src="${dataUrl}">`; }
+function fileToDataUrl(file) {
+  return new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(file); });
+}
+function dataUrlToB64(dataUrl) { return dataUrl.split(',')[1]; }
+function fmtBytes(n) { return n < 1024 ? n + ' B' : (n/1024).toFixed(1) + ' KB'; }
+
+// ---------- Stepper ----------
+function setStep(n) {
+  document.querySelectorAll('.step').forEach(s => {
+    const i = parseInt(s.dataset.step);
+    s.classList.toggle('done', i < n);
+    s.classList.toggle('active', i === n);
+  });
+  document.querySelectorAll('.step-connector').forEach(c => {
+    c.classList.toggle('done', parseInt(c.dataset.conn) < n);
+  });
+}
+
+// ---------- Dropzone (with thumbnail preview + remove) ----------
+function wireDropzone(zoneId, inputId, thumbId, filenameId, filesizeId, removeId, previewBoxId, onFile) {
+  const zone = $(zoneId), input = $(inputId), thumb = $(thumbId);
   ['dragover', 'dragenter'].forEach(ev => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('dragover'); }));
   ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove('dragover'); }));
   zone.addEventListener('drop', (e) => {
-    if (e.dataTransfer.files.length) {
-      input.files = e.dataTransfer.files;
-      input.dispatchEvent(new Event('change'));
-    }
+    if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
   });
   input.addEventListener('change', async () => {
     const file = input.files[0];
     if (!file) return;
-    fname.textContent = file.name;
     const dataUrl = await fileToDataUrl(file);
+    thumb.src = dataUrl;
+    $(filenameId).textContent = file.name;
+    $(filesizeId).textContent = fmtBytes(file.size);
+    zone.classList.add('has-file');
     if (previewBoxId) showImage($(previewBoxId), dataUrl);
     if (onFile) onFile(file, dataUrl);
+  });
+  $(removeId).addEventListener('click', (e) => {
+    e.stopPropagation();
+    input.value = '';
+    zone.classList.remove('has-file');
+    if (previewBoxId) $(previewBoxId).innerHTML = '<div class="placeholder">Image preview</div>';
+    if (onFile) onFile(null, null);
   });
 }
 
 // ---------- Operator: Embed ----------
 let state = { stegoB64: null, sidecar: null, attackedB64: null, secret: null, coverDataUrl: null };
 
-wireDropzone('coverDropzone', 'coverFile', 'coverFilename', 'coverPreviewBox', (file, dataUrl) => {
+wireDropzone('coverDropzone', 'coverFile', 'coverThumb', 'coverFilename', 'coverFilesize', 'coverRemove', 'coverPreviewBox', (file, dataUrl) => {
   state.coverDataUrl = dataUrl;
 });
 
@@ -476,31 +667,27 @@ $('btnEmbed').addEventListener('click', async () => {
   const file = $('coverFile').files[0];
   const message = $('messageText').value;
   const secret = $('secretKey').value;
-  if (!file || !message || !secret) {
-    statusLine($('embedStatus'), 'err', 'Cover image, message, and shared secret are all required.');
-    return;
-  }
+  if (!file || !message || !secret) { toast('err', 'Cover image, message, and shared secret are all required.'); return; }
   $('btnEmbed').disabled = true;
-  statusLine($('embedStatus'), 'info', '<span class="spinner"></span>Embedding...');
+  $('btnEmbed').innerHTML = '<span class="spinner"></span>Embedding...';
 
   const form = new FormData();
-  form.append('cover', file);
-  form.append('message', message);
-  form.append('secret', secret);
+  form.append('cover', file); form.append('message', message); form.append('secret', secret);
 
   try {
     const res = await fetch('/api/embed', { method: 'POST', body: form });
     const data = await res.json();
     $('btnEmbed').disabled = false;
-    if (!res.ok) { statusLine($('embedStatus'), 'err', data.error || 'Embedding failed.'); return; }
+    $('btnEmbed').innerHTML = '<svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Embed message';
+    if (!res.ok) { toast('err', data.error || 'Embedding failed.'); return; }
 
-    state.stegoB64 = data.stego_b64;
-    state.sidecar = data.sidecar;
-    state.secret = secret;
-    state.attackedB64 = null;
+    state.stegoB64 = data.stego_b64; state.sidecar = data.sidecar; state.secret = secret; state.attackedB64 = null;
 
     showImage($('stegoPreviewBox'), 'data:image/png;base64,' + data.stego_b64);
-    statusLine($('embedStatus'), 'ok', `Embedded ${data.message_bytes} bytes into ${data.blocks_used} blocks (${data.mode} mode).`);
+    $('btnDownloadStego').href = 'data:image/png;base64,' + data.stego_b64;
+    $('btnDownloadStego').download = 'aide_stego.png';
+    $('stegoActions').classList.remove('hidden');
+    toast('ok', `Embedded ${data.message_bytes} bytes into ${data.blocks_used} blocks (${data.mode} mode).`);
 
     const methodStr = Object.entries(data.method_breakdown).map(([m,p]) => `${m} ${p}%`).join(' · ');
     $('embedMetrics').classList.remove('hidden');
@@ -520,24 +707,25 @@ $('btnEmbed').addEventListener('click', async () => {
     $('tamperSection').classList.add('hidden');
     $('recoveredMessage').classList.add('hidden');
     $('btnRecoverAttacked').classList.add('hidden');
-    statusLine($('recoverStatus'), 'info', '');
+    $('recoverStatusHolder').innerHTML = '';
+    setStep(2);
   } catch (err) {
     $('btnEmbed').disabled = false;
-    statusLine($('embedStatus'), 'err', 'Request failed: ' + err);
+    toast('err', 'Request failed: ' + err);
   }
 });
 
-// ---------- Operator: Visual analysis (embedding map / diff heatmap) ----------
+// ---------- Operator: Visual analysis ----------
 const methodLegendHtml = `
   <span class="chip"><span class="swatch" style="background:var(--lsb-color)"></span>LSB</span>
   <span class="chip"><span class="swatch" style="background:var(--dct-color)"></span>DCT</span>
   <span class="chip"><span class="swatch" style="background:var(--dwt-color)"></span>DWT</span>
-  <span class="chip"><span class="swatch" style="background:transparent;border:1px solid #555"></span>Skipped / unused</span>
+  <span class="chip"><span class="swatch" style="background:transparent;border:1px solid var(--text-faint)"></span>Skipped / unused</span>
 `;
 
 $('btnShowMap').addEventListener('click', async () => {
   setVizActive('btnShowMap');
-  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Rendering...</div>';
+  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span></div>';
   try {
     const res = await fetch('/api/visualize/embedding-map', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -549,14 +737,12 @@ $('btnShowMap').addEventListener('click', async () => {
     $('vizCaption').textContent = 'Each colored block shows which method the AIDE engine assigned it.';
     $('vizLegend').innerHTML = methodLegendHtml;
     $('vizLegend').classList.remove('hidden');
-  } catch (err) {
-    $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
-  }
+  } catch (err) { $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`; }
 });
 
 $('btnShowDiff').addEventListener('click', async () => {
   setVizActive('btnShowDiff');
-  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Rendering...</div>';
+  $('vizBox').innerHTML = '<div class="placeholder"><span class="spinner"></span></div>';
   try {
     const res = await fetch('/api/visualize/diff', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -567,60 +753,47 @@ $('btnShowDiff').addEventListener('click', async () => {
     showImage($('vizBox'), 'data:image/png;base64,' + data.heatmap_b64);
     $('vizCaption').textContent = 'Real |cover − stego| pixel difference, amplified ~10× and colorized — invisible to the eye at true magnitude, which is the point.';
     $('vizLegend').classList.add('hidden');
-  } catch (err) {
-    $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
-  }
+  } catch (err) { $('vizBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`; }
 });
 
 $('btnHideViz').addEventListener('click', () => {
   $('vizBox').innerHTML = '<div class="placeholder">Choose a view above</div>';
-  $('vizCaption').textContent = '';
-  $('vizLegend').classList.add('hidden');
-  setVizActive(null);
+  $('vizCaption').textContent = ''; $('vizLegend').classList.add('hidden'); setVizActive(null);
 });
-
 function setVizActive(id) {
   document.querySelectorAll('.viz-toggle-row button.secondary').forEach(b => b.classList.remove('active'));
   if (id) $(id).classList.add('active');
 }
 
-// ---------- Operator: Attack types ----------
-fetch('/api/attack-types').then(r => r.json()).then(types => {
-  const sel = $('attackType');
-  sel.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
-});
+// ---------- Operator: Attack ----------
+fetch('/api/attack-types').then(r => r.json()).then(types => { $('attackType').innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join(''); });
 
 $('btnAttack').addEventListener('click', async () => {
   if (!state.stegoB64) return;
   let params = {};
   const raw = $('attackParams').value.trim();
-  if (raw) {
-    try { params = JSON.parse(raw); }
-    catch { statusLine($('attackStatus'), 'err', 'Parameters must be valid JSON.'); return; }
-  }
+  if (raw) { try { params = JSON.parse(raw); } catch { toast('err', 'Parameters must be valid JSON.'); return; } }
   $('btnAttack').disabled = true;
-  statusLine($('attackStatus'), 'info', '<span class="spinner"></span>Applying attack...');
-
+  $('btnAttack').innerHTML = '<span class="spinner"></span>Applying...';
   try {
     const res = await fetch('/api/attack', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stego_b64: state.stegoB64, type: $('attackType').value, params }),
     });
     const data = await res.json();
-    $('btnAttack').disabled = false;
-    if (!res.ok) { statusLine($('attackStatus'), 'err', data.error || 'Attack failed.'); return; }
+    $('btnAttack').disabled = false; $('btnAttack').textContent = 'Apply attack';
+    if (!res.ok) { toast('err', data.error || 'Attack failed.'); return; }
 
     state.attackedB64 = data.attacked_b64;
     showImage($('attackedPreviewBox'), 'data:image/png;base64,' + data.attacked_b64);
-    statusLine($('attackStatus'), 'ok', 'Attack applied. Try analyzing tamper below, or recover directly.');
+    toast('ok', 'Attack applied. Try analyzing tamper below, or recover directly.');
     $('btnRecoverAttacked').classList.remove('hidden');
     $('tamperSection').classList.remove('hidden');
-    $('tamperBox').classList.add('hidden');
-    $('tamperLegend').classList.add('hidden');
-    $('tamperStatsCol').innerHTML = '';
+    $('tamperBox').classList.add('hidden'); $('tamperLegend').classList.add('hidden'); $('tamperStatsCol').innerHTML = '';
+    setStep(3);
   } catch (err) {
-    $('btnAttack').disabled = false;
-    statusLine($('attackStatus'), 'err', 'Request failed: ' + err);
+    $('btnAttack').disabled = false; $('btnAttack').textContent = 'Apply attack';
+    toast('err', 'Request failed: ' + err);
   }
 });
 
@@ -629,7 +802,7 @@ $('btnShowTamper').addEventListener('click', async () => {
   if (!state.attackedB64) return;
   $('btnShowTamper').disabled = true;
   $('tamperBox').classList.remove('hidden');
-  $('tamperBox').innerHTML = '<div class="placeholder"><span class="spinner"></span>Analyzing...</div>';
+  $('tamperBox').innerHTML = '<div class="placeholder"><span class="spinner"></span></div>';
   try {
     const res = await fetch('/api/visualize/tamper', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -648,15 +821,12 @@ $('btnShowTamper').addEventListener('click', async () => {
         <div class="metric"><div class="value" style="color:var(--warn)">${data.hash_mismatch_blocks - data.erasure_blocks}</div><div class="label">Mismatch (blind-ECC)</div></div>
         <div class="metric"><div class="value" style="color:var(--ok)">${trusted}</div><div class="label">Trusted blocks</div></div>
       </div>`;
-  } catch (err) {
-    $('btnShowTamper').disabled = false;
-    $('tamperBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`;
-  }
+  } catch (err) { $('btnShowTamper').disabled = false; $('tamperBox').innerHTML = `<div class="placeholder">Request failed: ${err}</div>`; }
 });
 
 // ---------- Operator: Recover ----------
 async function doRecover(imageB64) {
-  statusLine($('recoverStatus'), 'info', '<span class="spinner"></span>Recovering...');
+  statusInline($('recoverStatusHolder'), 'info', '<span class="spinner"></span> Recovering...');
   $('recoveredMessage').classList.add('hidden');
   try {
     const res = await fetch('/api/recover', {
@@ -664,69 +834,92 @@ async function doRecover(imageB64) {
       body: JSON.stringify({ image_b64: imageB64, sidecar: state.sidecar, secret: state.secret }),
     });
     const data = await res.json();
-    if (!res.ok) { statusLine($('recoverStatus'), 'err', data.error || 'Recovery failed.'); return; }
+    if (!res.ok) { statusInline($('recoverStatusHolder'), 'err', data.error || 'Recovery failed.'); return; }
 
     if (data.success) {
-      statusLine($('recoverStatus'), 'ok', `Recovery succeeded (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
-      $('recoveredMessage').textContent = data.message;
+      statusInline($('recoverStatusHolder'), 'ok', `Recovery succeeded (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
+      $('recoveredMessageText').textContent = data.message;
       $('recoveredMessage').classList.remove('hidden');
+      toast('ok', 'Message recovered successfully.');
+      setStep(5);
     } else {
-      statusLine($('recoverStatus'), 'err', `Recovery FAILED: ${data.error} (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
+      statusInline($('recoverStatusHolder'), 'err', `Recovery FAILED: ${data.error} (erasures: ${data.erasure_count}/${data.total_bytes} bytes).`);
+      toast('err', 'Recovery failed — see details below.');
     }
-  } catch (err) {
-    statusLine($('recoverStatus'), 'err', 'Request failed: ' + err);
-  }
+  } catch (err) { statusInline($('recoverStatusHolder'), 'err', 'Request failed: ' + err); }
 }
 $('btnRecoverStego').addEventListener('click', () => state.stegoB64 && doRecover(state.stegoB64));
 $('btnRecoverAttacked').addEventListener('click', () => state.attackedB64 && doRecover(state.attackedB64));
+$('btnCopyMessage').addEventListener('click', () => {
+  navigator.clipboard.writeText($('recoveredMessageText').textContent).then(() => toast('ok', 'Copied to clipboard.'));
+});
 
 // ---------- Analyst: Detect ----------
-wireDropzone('detectDropzone', 'detectFile', 'detectFilename', 'detectPreviewBox');
+wireDropzone('detectDropzone', 'detectFile', 'detectThumb', 'detectFilename', 'detectFilesize', 'detectRemove', 'detectPreviewBox');
 
 $('btnDetect').addEventListener('click', async () => {
   const file = $('detectFile').files[0];
-  if (!file) { statusLine($('detectStatus'), 'err', 'Choose an image first.'); return; }
-
+  if (!file) { toast('err', 'Choose an image first.'); return; }
   $('btnDetect').disabled = true;
-  statusLine($('detectStatus'), 'info', '<span class="spinner"></span>Analyzing...');
-
-  const form = new FormData();
-  form.append('image', file);
-
+  $('btnDetect').innerHTML = '<span class="spinner"></span>Analyzing...';
+  const form = new FormData(); form.append('image', file);
   try {
     const res = await fetch('/api/detect', { method: 'POST', body: form });
     const data = await res.json();
     $('btnDetect').disabled = false;
-    if (!res.ok) { statusLine($('detectStatus'), 'err', data.error || 'Analysis failed.'); return; }
+    $('btnDetect').innerHTML = '<svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Analyze';
+    if (!res.ok) { toast('err', data.error || 'Analysis failed.'); return; }
 
-    statusLine($('detectStatus'), 'ok', 'Analysis complete.');
+    toast('ok', 'Analysis complete.');
     $('detectResultCard').classList.remove('hidden');
 
     const verdictLabels = {
-      clean: '✓ CLEAN — no evidence of hidden data',
-      suspicious: '⚠ SUSPICIOUS — some anomalous signal',
-      likely_steganographic: '⛔ LIKELY STEGANOGRAPHIC — strong evidence of hidden data',
+      clean: ICON.ok + ' CLEAN — no evidence of hidden data',
+      suspicious: '<svg class="icon" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> SUSPICIOUS — some anomalous signal',
+      likely_steganographic: ICON.err + ' LIKELY STEGANOGRAPHIC — strong evidence of hidden data',
     };
     $('verdictBox').innerHTML = `<div class="verdict ${data.verdict}">${verdictLabels[data.verdict]}</div>
       <div class="imgcaption" style="text-align:left;margin-top:8px">Combined suspicion score: <strong>${data.suspicion_score.toFixed(3)}</strong> / 1.0</div>`;
 
     $('gaugeChi').style.width = (data.chi_square_p * 100).toFixed(1) + '%';
-    const corrSignal = Math.max(0, 1 - Math.abs(data.lsb_correlation) / 0.15);
-    $('gaugeCorr').style.width = (corrSignal * 100).toFixed(1) + '%';
-    const balSignal = Math.max(0, 1 - data.lsb_bit_balance / 0.05);
-    $('gaugeBalance').style.width = (balSignal * 100).toFixed(1) + '%';
-
-    $('bandBars').innerHTML = data.row_band_profile.map(p =>
-      `<div class="bandbar" style="height:${Math.max(2, p*100)}%" title="p=${p.toFixed(3)}"></div>`
-    ).join('');
+    $('gaugeCorr').style.width = (Math.max(0, 1 - Math.abs(data.lsb_correlation) / 0.15) * 100).toFixed(1) + '%';
+    $('gaugeBalance').style.width = (Math.max(0, 1 - data.lsb_bit_balance / 0.05) * 100).toFixed(1) + '%';
+    $('bandBars').innerHTML = data.row_band_profile.map(p => `<div class="bandbar" style="height:${Math.max(2, p*100)}%" title="p=${p.toFixed(3)}"></div>`).join('');
   } catch (err) {
     $('btnDetect').disabled = false;
-    statusLine($('detectStatus'), 'err', 'Request failed: ' + err);
+    toast('err', 'Request failed: ' + err);
   }
 });
 
 // ---------- Model Insights ----------
 let insightsLoaded = false;
+
+function renderDonut(containerEl, data) {
+  // data: [{label, value, color}]
+  const total = data.reduce((a, d) => a + d.value, 0) || 1;
+  const r = 52, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const segments = data.map(d => {
+    const frac = d.value / total;
+    const dash = frac * circumference;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}" stroke-width="16"
+      stroke-dasharray="${dash} ${circumference - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += dash;
+    return seg;
+  }).join('');
+  containerEl.innerHTML = `
+    <svg viewBox="0 0 120 120" style="width:150px;height:150px;flex-shrink:0">${segments}
+      <text x="60" y="56" text-anchor="middle" fill="var(--text)" font-size="15" font-family="var(--mono)" font-weight="700">${total.toLocaleString()}</text>
+      <text x="60" y="72" text-anchor="middle" fill="var(--text-faint)" font-size="8">blocks</text>
+    </svg>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${data.map(d => `<div style="display:flex;align-items:center;gap:8px;font-size:0.85rem">
+        <span style="width:11px;height:11px;border-radius:3px;background:${d.color};display:inline-block"></span>
+        <span style="color:var(--text-dim)">${d.label}</span>
+        <span style="font-family:var(--mono);margin-left:auto;padding-left:14px">${d.value.toLocaleString()} (${(100*d.value/total).toFixed(1)}%)</span>
+      </div>`).join('')}
+    </div>`;
+}
 
 async function loadModelInsights() {
   insightsLoaded = true;
@@ -746,10 +939,8 @@ async function loadModelInsights() {
 
     const w = data.weights;
     const weightMeta = [
-      ['Texture (α)', w.alpha, 'var(--lsb-color)'],
-      ['Entropy (β)', w.beta, 'var(--accent-2)'],
-      ['Variance (γ)', w.gamma, 'var(--purple)'],
-      ['Edge strength (δ)', w.delta, 'var(--dct-color)'],
+      ['Texture (α)', w.alpha, 'var(--lsb-color)'], ['Entropy (β)', w.beta, 'var(--accent-2)'],
+      ['Variance (γ)', w.gamma, 'var(--purple)'], ['Edge strength (δ)', w.delta, 'var(--dct-color)'],
     ];
     $('weightBars').innerHTML = weightMeta.map(([name, val, color]) => `
       <div class="weight-row">
@@ -767,16 +958,12 @@ async function loadModelInsights() {
     `;
 
     const dist = meta.label_distribution || {};
-    const total = Object.values(dist).reduce((a,b) => a+b, 0) || 1;
-    const distColors = { LSB: 'var(--lsb-color)', DCT: 'var(--dct-color)', DWT: 'var(--dwt-color)', SKIP: '#555' };
-    $('labelDist').innerHTML = Object.entries(dist).map(([label, count]) => `
-      <div class="weight-row">
-        <div class="name">${label}</div>
-        <div class="weight-track"><div class="weight-fill" style="width:${(100*count/total).toFixed(1)}%;background:${distColors[label] || '#888'}"></div></div>
-        <div class="num">${count.toLocaleString()}</div>
-      </div>`).join('') || '<div class="imgcaption">No label distribution recorded.</div>';
+    const distColors = { LSB: '#f0b342', DCT: '#35d0c4', DWT: '#5b8cff', SKIP: '#555f70' };
+    const donutData = Object.entries(dist).map(([label, value]) => ({ label, value, color: distColors[label] || '#888' }));
+    if (donutData.length) renderDonut($('labelDist'), donutData);
+    else $('labelDist').innerHTML = '<div class="imgcaption">No label distribution recorded.</div>';
   } catch (err) {
-    $('statGrid').innerHTML = `<div class="status-line err">Failed to load model info: ${err}</div>`;
+    $('statGrid').innerHTML = `<div style="color:var(--danger);font-size:0.85rem">Failed to load model info: ${err}</div>`;
   }
 }
 </script>
