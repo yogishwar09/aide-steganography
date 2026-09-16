@@ -2,16 +2,16 @@
   <title>AIDE — Adaptive Intelligent Dynamic Embedding Framework</title>
   <defs>
     <linearGradient id="aideBgWm" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7c6ff0"/>
-      <stop offset="1" stop-color="#21c7de"/>
+      <stop offset="0" stop-color="#5e6ad2"/>
+      <stop offset="1" stop-color="#3aa7ff"/>
     </linearGradient>
   </defs>
 
   <!-- mark -->
   <rect x="4" y="4" width="64" height="64" rx="15" fill="url(#aideBgWm)"/>
   <path d="M36 11 15.7 20.6v15.4c0 12.8 9 21.8 20.3 25.6 11.5-3.8 20.3-12.8 20.3-25.6V20.6z"
-        fill="none" stroke="#1a1330" stroke-width="2.8" stroke-linejoin="round"/>
-  <g stroke="#1a1330" stroke-width="1.7" fill="none">
+        fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linejoin="round"/>
+  <g stroke="#ffffff" stroke-width="1.7" fill="none">
     <rect x="25.8" y="25.8" width="5.3" height="5.3"/>
     <rect x="33.3" y="25.8" width="5.3" height="5.3"/>
     <rect x="40.8" y="25.8" width="5.3" height="5.3"/>
@@ -21,9 +21,9 @@
     <rect x="33.3" y="40.8" width="5.3" height="5.3"/>
     <rect x="40.8" y="40.8" width="5.3" height="5.3"/>
   </g>
-  <rect x="33.3" y="33.3" width="5.3" height="5.3" fill="#1a1330"/>
+  <rect x="33.3" y="33.3" width="5.3" height="5.3" fill="#ffffff"/>
 
   <!-- wordmark -->
-  <text x="86" y="42" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="27" letter-spacing="0.5" fill="#1a1330">AIDE</text>
-  <text x="86" y="60" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="11.5" letter-spacing="0.4" fill="#6b6580">ADAPTIVE INTELLIGENT DYNAMIC EMBEDDING</text>
+  <text x="86" y="42" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="27" letter-spacing="0.5" fill="#14151a">AIDE</text>
+  <text x="86" y="60" font-family="Arial, Helvetica, sans-serif" font-weight="500" font-size="11.5" letter-spacing="0.4" fill="#6b6e80">ADAPTIVE INTELLIGENT DYNAMIC EMBEDDING</text>
 </svg>
