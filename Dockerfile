@@ -3,10 +3,11 @@
 #   docker build -t aide .
 #   docker run --rm -p 5050:5050 -v "$PWD/data:/app/data" aide
 #
-# Trained models live in ./data/models (gitignored, produced by `aide train`
-# and `aide train-detector`); mount ./data so the container uses them.
-# Without them the app falls back to the formula-only decision engine and
-# skips the ML detector. Set AIDE_API_KEY to require an X-API-Key header.
+# The trained models in ./data/models (from `aide train` and
+# `aide train-detector`) are baked into the image; mount ./data to override
+# them. Runtime versions are pinned in constraints.txt because the models
+# are version-sensitive scikit-learn pickles. Set AIDE_API_KEY to require
+# an X-API-Key header on the versioned /api/v1 endpoints.
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -20,13 +21,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md constraints.txt ./
 COPY aide ./aide
-RUN pip install ".[web]"
+RUN pip install -c constraints.txt ".[web]"
 
 COPY webapp ./webapp
 COPY reports ./reports
-RUN mkdir -p data/models && useradd --create-home --uid 10001 aide && chown -R aide /app
+COPY data/models ./data/models
+RUN useradd --create-home --uid 10001 aide && chown -R aide /app
 USER aide
 
 EXPOSE 5050

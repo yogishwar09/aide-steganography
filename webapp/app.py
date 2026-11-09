@@ -17,7 +17,10 @@ cleans up after every request.
 Every endpoint is served at both /api/<name> (used by the bundled UI) and
 the versioned /api/v1/<name> (for integrations; contract in
 /api/v1/openapi.json). Set AIDE_API_KEY to require an `X-API-Key` header
-on API calls - e.g. when exposing the console beyond localhost.
+on the versioned /api/v1 endpoints - e.g. on a public deployment - while
+the bundled console keeps working for anyone with the link. This gates
+the integration API, not the console's own routes: per-user access
+control is the job of real accounts (roadmap, Phase 2 week 1).
 
 Run with:
     python webapp/app.py            (development server)
@@ -134,7 +137,7 @@ def _before():
     g.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
     g.t0 = time.perf_counter()
     api_key = os.environ.get("AIDE_API_KEY")
-    if api_key and request.path.startswith("/api/") and request.path != "/api/v1/openapi.json":
+    if api_key and request.path.startswith("/api/v1/") and request.path != "/api/v1/openapi.json":
         supplied = request.headers.get("X-API-Key", "")
         if not hmac.compare_digest(supplied, api_key):
             return jsonify({"error": "missing or invalid X-API-Key"}), 401
@@ -674,7 +677,7 @@ def openapi():
         "openapi": "3.0.3",
         "info": {"title": "AIDE API", "version": __version__,
                  "description": "Adaptive steganography (embed/recover) and steganalysis (detect). "
-                                "If the server sets AIDE_API_KEY, send it as X-API-Key."},
+                                "If the server sets AIDE_API_KEY, send it as X-API-Key on /api/v1 calls."},
         "components": {"securitySchemes": {"apiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"}}},
         "paths": {
             "/api/v1/profiles": {"get": op("List robustness profiles")},

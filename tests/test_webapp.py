@@ -274,9 +274,13 @@ def test_json_errors_and_security_headers(client):
 
 def test_api_key_enforced_when_configured(client, monkeypatch):
     monkeypatch.setenv("AIDE_API_KEY", "s3cret")
-    assert client.get("/api/profiles").status_code == 401
-    assert client.get("/api/profiles", headers={"X-API-Key": "s3cret"}).status_code == 200
-    assert client.get("/").status_code == 200  # the UI page itself is not gated
+    assert client.get("/api/v1/profiles").status_code == 401
+    assert client.get("/api/v1/profiles", headers={"X-API-Key": "wrong"}).status_code == 401
+    assert client.get("/api/v1/profiles", headers={"X-API-Key": "s3cret"}).status_code == 200
+    assert client.get("/api/v1/openapi.json").status_code == 200  # the contract stays readable
+    # the bundled console's own routes keep working for anyone with the link
+    assert client.get("/").status_code == 200
+    assert client.get("/api/profiles").status_code == 200
 
 
 def test_sweep_runs_every_scenario(client, real_sample_image_path):

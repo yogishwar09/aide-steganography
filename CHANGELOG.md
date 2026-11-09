@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Deployment
+- **Hugging Face Spaces deploy** (`scripts/deploy_space.py`, `make deploy`):
+  creates a Docker Space, uploads only what the image needs, and stores a
+  generated `AIDE_API_KEY` as a Space secret.
+- The trained models in `data/models` are now versioned and baked into the
+  Docker image, so a deployment runs the trained engine and ML detector
+  instead of falling back to the formula engine.
+- Runtime versions are pinned in `constraints.txt` (scikit-learn pickles are
+  version-sensitive).
+- `AIDE_API_KEY` now gates the versioned `/api/v1` endpoints only; the
+  bundled console stays usable for anyone with the link.
+
 ### Web console
 - **Live Demo page** (now the console's landing page): one click runs the
   whole mission on a bundled cover — encrypt, Reed-Solomon encode, adaptive

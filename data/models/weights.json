@@ -1,0 +1,35 @@
+{
+  "weights": {
+    "alpha": 0.5491736520421991,
+    "beta": 0.005722458504705804,
+    "gamma": 0.0003414936834657742,
+    "delta": 0.44476239576962934
+  },
+  "thresholds": {
+    "tau_min": 0.4372107124570515,
+    "t_low": 0.8838158249173027,
+    "e_high": 0.06563023058821427
+  },
+  "meta": {
+    "dataset_dir": "data/samples",
+    "num_images": 334,
+    "num_blocks": 342016,
+    "target_psnr_db": 42.0,
+    "method_train_accuracy": 0.8773153224273789,
+    "method_val_accuracy": 0.8769224021987019,
+    "bpp_val_mae": 0.13644396386021088,
+    "label_distribution": {
+      "DCT": 125186,
+      "DWT": 60736,
+      "LSB": 112865,
+      "SKIP": 43229
+    },
+    "training_seconds": 140.2307129999972
+  },
+  "feature_names": [
+    "texture",
+    "entropy",
+    "variance",
+    "edge_strength"
+  ]
+}

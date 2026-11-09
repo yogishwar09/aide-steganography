@@ -1,0 +1,19 @@
+# Exact runtime versions the trained models in data/models were built and
+# tested with. scikit-learn pickles are version-sensitive, so deployments
+# install with `pip install -c constraints.txt ".[web]"`.
+numpy==2.2.6
+scipy==1.15.3
+opencv-python-headless==5.0.0.93
+scikit-learn==1.7.2
+scikit-image==0.25.2
+PyWavelets==1.8.0
+pillow==12.3.0
+pycryptodome==3.23.0
+reedsolo==1.7.0
+psutil==7.2.2
+joblib==1.6.0
+threadpoolctl==3.6.0
+flask==3.1.3
+werkzeug==3.1.8
+jinja2==3.1.6
+gunicorn==26.2.0

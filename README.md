@@ -182,6 +182,12 @@ docker build -t aide . && docker run -p 5050:5050 -v "$PWD/data:/app/data" aide
   families (verdict, SPA/RS payload estimate, ML probability, suspicion
   heatmap), or batch-screen up to 50 images into a ranked table with CSV
   export.
+- **Live Demo** (landing page): one click runs the full mission on a
+  bundled cover — encrypt, embed, the 16-scenario attack gauntlet, recovery
+  through noise + JPEG, and analyst screening — and ends in a scoreboard.
+- **Vision & Roadmap:** field challenges and AIDE's answers, the measured
+  0.1 → 0.2 engineering journey, open challenges, the four-week Major
+  Project Phase 2 plan and the long-term scope.
 - **Model Insights:** shows the learned S(b) weights, thresholds and label
   distribution, the **robustness benchmark matrix**, and the **ML
   steganalyser's held-out evaluation**.
@@ -190,11 +196,30 @@ Every endpoint is served at `/api/<name>` and at the versioned
 `/api/v1/<name>`. The contract is in `/api/v1/openapi.json`, and
 `/healthz` is the health check.
 
-Set `AIDE_API_KEY` to require an `X-API-Key` header on API calls. Responses
+Set `AIDE_API_KEY` to require an `X-API-Key` header on the versioned
+`/api/v1` endpoints; the bundled console keeps working for anyone with the
+link (per-user access control is Phase 2 work). Responses
 carry `X-Request-ID`, a CSP and anti-framing headers, and every error is
 returned as JSON (`{"error": ...}`). The server is stateless: the browser
 holds the stego image and sidecar between steps, and temp files are
 deleted after each request.
+
+### Deployment (Hugging Face Spaces)
+
+The Docker image bakes in the trained models from `data/models` and pins
+the runtime versions they were built with (`constraints.txt`). To publish
+it as a public Space:
+
+```bash
+pip install -e ".[deploy]"
+hf auth login                      # once, with a write token
+python scripts/deploy_space.py     # or: make deploy
+```
+
+The script creates `<your-username>/aide` (Docker SDK) if needed, uploads
+only what the image needs, and sets a random `AIDE_API_KEY` Space secret,
+saved locally to `.space_api_key` (gitignored). The Space builds the same
+Dockerfile CI builds and health-checks.
 
 ## Architecture
 

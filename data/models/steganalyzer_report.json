@@ -1,0 +1,44 @@
+{
+  "train_covers": 234,
+  "test_covers": 100,
+  "variants": [
+    "sidecar:quality",
+    "sidecar:balanced",
+    "sidecar:robust",
+    "blind:balanced",
+    "blind:robust"
+  ],
+  "feature_dims": 126,
+  "threshold_at_5pct_fpr": 0.5,
+  "test_false_positive_rate": 0.01,
+  "test_auc_overall": 0.9994078947368421,
+  "per_variant": {
+    "sidecar:quality": {
+      "detected": 1.0,
+      "auc_vs_clean": 0.998314606741573,
+      "n": 89
+    },
+    "sidecar:balanced": {
+      "detected": 1.0,
+      "auc_vs_clean": 0.9995348837209302,
+      "n": 86
+    },
+    "sidecar:robust": {
+      "detected": 1.0,
+      "auc_vs_clean": 0.9996296296296296,
+      "n": 81
+    },
+    "blind:balanced": {
+      "detected": 1.0,
+      "auc_vs_clean": 0.9994999999999999,
+      "n": 100
+    },
+    "blind:robust": {
+      "detected": 1.0,
+      "auc_vs_clean": 1.0,
+      "n": 100
+    }
+  },
+  "ood_test_in_distribution_rate": 0.987410071942446,
+  "training_seconds": 72.9
+}

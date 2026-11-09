@@ -1,7 +1,7 @@
 PY ?= .venv/bin/python
 AIDE ?= .venv/bin/aide
 
-.PHONY: install data train detector test lint fmt bench web docker report
+.PHONY: install data train detector test lint fmt bench web docker deploy report
 
 install:            ## create venv-installed package with all extras
 	$(PY) -m pip install -e ".[dev,web,data,report]"
@@ -32,3 +32,6 @@ web:
 
 docker:
 	docker build -t aide .
+
+deploy:             ## publish the console to a Hugging Face Space (see scripts/deploy_space.py)
+	$(PY) scripts/deploy_space.py
