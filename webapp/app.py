@@ -72,12 +72,6 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.json.sort_keys = False  # keep profiles in quality -> fortress order for the UI
 log = logging.getLogger("aide.web")
 
-# On hosts with a fraction of one CPU (e.g. Render's free plan), OpenCV's
-# worker pool only adds context-switch overhead; AIDE_CV_THREADS pins it.
-if os.environ.get("AIDE_CV_THREADS"):
-    import cv2
-    cv2.setNumThreads(int(os.environ["AIDE_CV_THREADS"]))
-
 _model_cache: AIDEModel | None = None
 _detector_cache: object | None = None
 _detector_loaded = False
