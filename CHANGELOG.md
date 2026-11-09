@@ -14,6 +14,11 @@
   (`webapp/static/demo/`); a test guarantees each one survives every
   scenario under `robust`/blind.
 - Sidebar status pill reports live engine/detector state from `/healthz`.
+- **Vision & Roadmap page**: field challenges and how AIDE answers them,
+  the 0.1 → 0.2 engineering journey with measured before/after recovery
+  rates, open challenges with their path forward, a three-phase roadmap,
+  application domains, and a responsible-use note. The headline recovery
+  figure is read live from the committed benchmark.
 
 ## 0.2.0 — 2026-10-11
 

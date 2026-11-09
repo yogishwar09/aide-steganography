@@ -308,3 +308,9 @@ def test_demo_covers_survive_the_full_gauntlet(client):
         sweep = client.post("/api/sweep", json={"image_b64": embed["stego_b64"], "secret": "k",
                                                 "embed_mode": "blind"}).get_json()
         assert sweep["passed"] == len(SCENARIOS), (cover["id"], sweep["results"])
+
+
+def test_console_ships_demo_and_vision_pages(client):
+    html = client.get("/").get_data(as_text=True)
+    for page in ("page-demo", "page-operator", "page-analyst", "page-insights", "page-vision"):
+        assert f'id="{page}"' in html

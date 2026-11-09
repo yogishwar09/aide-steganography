@@ -390,6 +390,89 @@
     .gauntlet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
+
+  /* ---------- Vision & Roadmap ---------- */
+  .vision-hero { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(94,106,210,0.16), rgba(58,167,255,0.06) 55%, transparent), var(--panel); }
+  .vision-hero h3 { font-size: 1.7rem; line-height: 1.2; margin: 8px 0 10px; letter-spacing: -0.02em; max-width: 820px; }
+  .vision-hero p { color: var(--text-dim); max-width: 760px; margin: 0; font-size: 0.92rem; }
+  .vision-hero .eyebrow, .vsec-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-2); font-weight: 700; }
+  .trl { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 22px; max-width: 760px; }
+  .trl div { height: 30px; border-radius: 5px; background: var(--panel-3); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.7rem; color: var(--text-faint); position: relative; }
+  .trl div.now { background: var(--accent); color: #fff; }
+  .trl div.next { background: transparent; border: 1px dashed var(--accent); color: var(--accent); }
+  .trl-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.74rem; color: var(--text-faint); margin-top: 8px; }
+  .trl-legend b { color: var(--text); font-weight: 600; }
+  .vstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 22px; }
+  .vstrip .kpi .v { font-size: 1.3rem; }
+
+  .vsec-head { margin: 34px 0 16px; }
+  .vsec-head h3 { margin: 4px 0 4px; font-size: 1.2rem; letter-spacing: -0.01em; }
+  .vsec-head p { margin: 0; color: var(--text-dim); font-size: 0.86rem; max-width: 820px; }
+
+  .chal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .chal { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.15s, transform 0.15s; }
+  .chal:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
+  .chal .ctag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+  .chal .ctag.p { color: var(--danger); } .chal .ctag.s { color: var(--ok); }
+  .chal .ctitle { font-weight: 650; font-size: 0.98rem; line-height: 1.35; }
+  .chal .ctext { font-size: 0.82rem; color: var(--text-dim); line-height: 1.55; }
+  .chal .cproof { margin-top: auto; font-family: var(--mono); font-size: 0.72rem; color: var(--accent-2); background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 7px; padding: 8px 10px; }
+  .chal hr { border: none; border-top: 1px dashed var(--border); margin: 0; }
+
+  .journey { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 8px 22px; }
+  .jrow { display: grid; grid-template-columns: 1.15fr 1.35fr 1.1fr; gap: 22px; padding: 16px 0; border-bottom: 1px solid var(--border-soft); align-items: center; }
+  .jrow:last-child { border-bottom: none; }
+  .jrow .jprob { font-weight: 600; font-size: 0.88rem; }
+  .jrow .jprob small { display: block; font-weight: 400; color: var(--text-faint); font-size: 0.76rem; margin-top: 3px; }
+  .jrow .jfix { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+  .jbars { display: grid; grid-template-columns: 52px 1fr 46px; gap: 4px 8px; align-items: center; font-family: var(--mono); font-size: 0.7rem; color: var(--text-faint); }
+  .jbar { height: 9px; background: var(--panel-3); border-radius: 5px; overflow: hidden; }
+  .jbar i { display: block; height: 100%; width: 0; border-radius: 5px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+  .jbar.before i { background: var(--text-faint); } .jbar.after i { background: var(--ok); }
+  .jbars .n { text-align: right; color: var(--text-dim); }
+
+  .open-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .open { background: var(--panel); border: 1px solid var(--border-soft); border-left: 3px solid var(--warn); border-radius: var(--radius); padding: 18px 20px; }
+  .open .otop { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .open .otitle { font-weight: 650; font-size: 0.94rem; }
+  .chip-s { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 999px; font-weight: 700; white-space: nowrap; }
+  .chip-s.research { background: rgba(167,139,250,0.14); color: var(--purple); }
+  .chip-s.planned { background: rgba(58,167,255,0.14); color: var(--accent-2); }
+  .chip-s.data { background: rgba(245,165,36,0.14); color: var(--warn); }
+  .open .orow { font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+  .open .orow b { color: var(--text); font-weight: 600; }
+
+  .roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; position: relative; }
+  .phase { padding: 0 18px 0 0; position: relative; }
+  .phase .pbar { height: 6px; border-radius: 3px; margin-bottom: 18px; background: var(--panel-3); position: relative; }
+  .phase .pbar::after { content: ""; position: absolute; left: 0; top: -5px; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); border: 3px solid var(--accent); }
+  .phase:nth-child(1) .pbar { background: linear-gradient(90deg, var(--accent), var(--accent-dim)); }
+  .phase .pwhen { font-family: var(--mono); font-size: 0.72rem; color: var(--accent-2); }
+  .phase .pname { font-weight: 700; font-size: 1.02rem; margin: 2px 0 12px; }
+  .ritem { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 9px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .ritem:hover, .ritem.open { border-color: var(--accent-dim); }
+  .ritem .rt { font-size: 0.86rem; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+  .ritem .rt span:last-child { color: var(--text-faint); transition: transform 0.2s; }
+  .ritem.open .rt span:last-child { transform: rotate(90deg); }
+  .ritem .rd { font-size: 0.78rem; color: var(--text-dim); line-height: 1.5; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin 0.3s; }
+  .ritem.open .rd { max-height: 220px; margin-top: 8px; }
+
+  .domain-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .domain { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 18px; }
+  .domain .dico { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-dim); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .domain .dico svg { width: 19px; height: 19px; }
+  .domain .dt { font-weight: 650; font-size: 0.9rem; }
+  .domain .dd { font-size: 0.78rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+  .ethics { margin-top: 22px; }
+
+  @media (max-width: 1100px) {
+    .chal-grid, .domain-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .open-grid, .roadmap { grid-template-columns: 1fr; }
+    .phase { padding: 0 0 18px; }
+    .jrow { grid-template-columns: 1fr; gap: 10px; }
+    .vstrip { grid-template-columns: repeat(2, 1fr); }
+  }
+
   @media (max-width: 900px) {
     .sidebar { width: 68px; }
     .brand-text, .nav-item span.label, .nav-section-label, .sidebar-footer .status-pill span { display: none; }
@@ -434,6 +517,10 @@
       <div class="nav-item" data-page="insights" data-title="Model Insights" data-desc="What the trained decision engine actually learned — not a description of it.">
         <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg>
         <span class="label">Model Insights</span>
+      </div>
+      <div class="nav-item" data-page="vision" data-title="Vision &amp; Roadmap" data-desc="The problem, what AIDE already solves, what is still open, and where it goes next.">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+        <span class="label">Vision &amp; Roadmap</span>
       </div>
     </nav>
 
@@ -546,6 +633,58 @@
           <h2><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyst side — blind screening, no secret</h2>
           <div class="analyst-grid" id="demoAnalyst"></div>
           <div class="imgcaption" style="text-align:left;margin-top:14px">The same toolkit defends the other direction: AIDE's own detector screens intercepted media with no key and no sidecar. A clean cover must pass; a stego image must be flagged.</div>
+        </div>
+      </div>
+
+      <!-- ============ VISION & ROADMAP PAGE ============ -->
+      <div class="page" id="page-vision">
+        <div class="card vision-hero">
+          <div class="eyebrow">Future scope</div>
+          <h3>From a lab-validated engine to a deployable covert-communication and media-forensics platform.</h3>
+          <p>AIDE already does both jobs on one CPU: it moves encrypted messages through hostile, lossy channels, and it screens intercepted media for hidden data. This page sets out the problems that motivated it, the engineering challenges solved along the way, the ones still open, and the plan to close them.</p>
+          <div class="trl" id="trlBar"></div>
+          <div class="trl-legend"><span><b>TRL 4–5 today</b> — validated on real photographs in a lab environment</span><span><b>Target TRL 7</b> — demonstrated in an operational setting</span></div>
+          <div class="vstrip kpis" id="visionStrip"></div>
+        </div>
+
+        <div class="vsec-head">
+          <div class="vsec-eyebrow">01 · The problem</div>
+          <h3>Challenges in the field, and how AIDE answers them</h3>
+          <p>Real-world problems in secure communication and media screening, each paired with the mechanism AIDE uses and the measured evidence.</p>
+        </div>
+        <div class="chal-grid" id="chalGrid"></div>
+
+        <div class="vsec-head">
+          <div class="vsec-eyebrow">02 · Engineering journey</div>
+          <h3>Challenges we faced building it, and how we solved them</h3>
+          <p>Each row is a real failure in AIDE 0.1, what fixed it, and the measured recovery rate before and after on the same 30 BOSSbase covers.</p>
+        </div>
+        <div class="journey" id="journey"></div>
+
+        <div class="vsec-head">
+          <div class="vsec-eyebrow">03 · Open challenges</div>
+          <h3>What AIDE does not solve yet, and how it will</h3>
+          <p>Stated plainly, as measured. Each one has a concrete, known path forward.</p>
+        </div>
+        <div class="open-grid" id="openGrid"></div>
+
+        <div class="vsec-head">
+          <div class="vsec-eyebrow">04 · Roadmap</div>
+          <h3>Future scope in three phases</h3>
+          <p>Click any item for detail. Phase 1 builds directly on what is in this repository today.</p>
+        </div>
+        <div class="roadmap" id="roadmap"></div>
+
+        <div class="vsec-head">
+          <div class="vsec-eyebrow">05 · Applications</div>
+          <h3>Where this technology can go</h3>
+          <p>The same core — adaptive embedding, authenticated encryption, error correction, tamper localization and steganalysis — serves well beyond defence.</p>
+        </div>
+        <div class="domain-grid" id="domainGrid"></div>
+
+        <div class="disclaimer ethics">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div><b>Responsible use.</b> Steganography is dual-use. That is why AIDE ships the detector alongside the embedder, publishes its own detectability, and is designed for authorized operators: deployment adds authentication, role-based access and an audit trail (Phase 1).</div>
         </div>
       </div>
 
@@ -807,6 +946,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     $('pageTitle').textContent = item.dataset.title;
     $('pageDesc').textContent = item.dataset.desc;
     if (item.dataset.page === 'insights' && !insightsLoaded) loadModelInsights();
+    if (item.dataset.page === 'vision') renderVision();
   });
 });
 
@@ -1413,6 +1553,141 @@ $('btnRunDemo').addEventListener('click', async () => {
     demo.running = false; btn.disabled = false; btn.innerHTML = btnHtml;
   }
 });
+
+
+// ---------- Vision & Roadmap ----------
+const VISION = {
+  field: [
+    { p: 'Lossy channels destroy hidden data', pt: 'Messaging apps re-compress, radio links add noise, images get resized. Classic LSB steganography loses the message after a single JPEG save.',
+      s: 'Reed-Solomon ECC with interleaving and soft-decision (GMD) decoding, embedded in robust DCT/DWT coefficients, with four selectable robustness profiles.',
+      proof: 'robust: 100% recovery at JPEG Q30 and σ=20 noise' },
+    { p: 'Encrypted traffic draws attention; plain steganography is readable', pt: 'Visible ciphertext marks a target. Hidden-but-unencrypted data is readable by anyone who finds it, and can be silently altered.',
+      s: 'Hidden and encrypted: AES-256-GCM authenticated encryption with a memory-hard scrypt key, bound to the image.',
+      proof: 'GCM tag checked first → exact message or an error, never garbage' },
+    { p: 'Out-of-band metadata is a liability', pt: 'Many schemes need a map or key file sent separately — one more thing to intercept, lose or leak.',
+      s: 'Blind mode: a keyed, self-describing layout. The receiver needs only the image and the shared secret.',
+      proof: 'blind robust: 16/16 attack scenarios on the demo covers' },
+    { p: 'Deep-learning steganography needs GPUs and is a black box', pt: 'Field hardware has no GPU, and defence systems must be auditable — "the network decided" is not an answer.',
+      s: 'A learned, explainable per-block policy (texture, entropy, variance, edges) — weights and thresholds are inspectable in Model Insights.',
+      proof: '13 KB model · 0.06 ms per block decision · CPU only' },
+    { p: 'Tampering goes unnoticed', pt: 'An adversary can splice or crop an image in transit; the receiver needs to know what was touched, not just that decoding failed.',
+      s: 'Per-block SHA-256 hashes plus histogram analysis localize tampered blocks and feed them to the decoder as known erasures.',
+      proof: 'splice 5%: 85% → 100% recovery' },
+    { p: 'Defenders cannot screen media at scale', pt: 'Analysts face thousands of intercepted images with no key, no metadata and no idea which tool was used.',
+      s: 'A blind steganalysis toolkit: chi-square, Sample Pairs and RS analysis plus a trained ML detector with an out-of-distribution guard; batch screening over REST.',
+      proof: 'ML detector: AUC 0.998–1.000 at 1% false positives' },
+  ],
+  journey: [
+    { prob: 'Heavy noise wiped the message', sub: 'Gaussian σ=20 (report objective O4)', fix: 'Robustness profiles bundle a larger DCT step, more RS parity and payload budgets; robust meets O4 end to end.', b: 0, a: 100 },
+    { prob: 'Impulse noise was fatal', sub: 'Salt & pepper 1%', fix: 'GMD reliability-guided decoding: soft per-bit margins mark the least reliable bytes as erasures — Reed-Solomon can repair up to twice as many erasures as unknown errors.', b: 0, a: 100 },
+    { prob: 'Median filtering broke 1 in 3 messages', sub: 'Median 3×3', fix: 'Measured that ~40% of errors came from ~2% of bits in LSB/DWT blocks — payload is now routed to DCT.', b: 69, a: 100 },
+    { prob: 'Downscaling destroyed the payload', sub: 'Rescale 0.5×', fix: 'Preferred low-frequency layout keeps bits in coefficients that survive resampling.', b: 0, a: 96 },
+    { prob: 'Short messages were fragile under cropping', sub: 'Crop 10%', fix: 'Shortened RS codewords spread even short messages over ≥4 interleaved codewords, so one lost region cannot sink a codeword.', b: 50, a: 100 },
+    { prob: 'A separate sidecar file was mandatory', sub: 'Operational burden', fix: 'Blind mode: keyed block layout with a compact, RS-protected, repetition-coded header.', cap: 'image + secret only' },
+    { prob: 'Weak passphrases were brute-forceable', sub: 'Single SHA-256 key derivation', fix: 'scrypt (N=2¹⁴, r=8, p=1): ~16 MB of memory per guess. Old 0.1 files still decode.', cap: 'memory-hard KDF' },
+    { prob: 'Detection only caught naive LSB', sub: 'Chi-square only', fix: 'Added Sample Pairs + RS analysis (payload-size estimates) and a trained gradient-boosted detector.', cap: '3 detector families' },
+  ],
+  open: [
+    { t: 'Targeted steganalysis can detect AIDE', chip: ['research', 'Research'],
+      now: 'Classical detectors score AIDE images clean, but our own detector, trained on AIDE, flags 100% — the QIM pair gap is a statistical fingerprint.',
+      path: 'Syndrome-trellis codes (STC) to minimise a distortion cost, keyed and dithered pair selection to erase the gap, and adversarial training against our own detector.' },
+    { t: 'Geometric desynchronization', chip: ['planned', 'Planned'],
+      now: 'Rotation, true cropping (canvas change) and aspect-ratio changes misalign the block grid.',
+      path: 'An embedded registration template or invariant-domain (Fourier–Mellin) embedding to re-synchronize before decoding.' },
+    { t: 'Training scale', chip: ['data', 'Data task'],
+      now: 'Models trained on 334 BOSSbase images; the detector knows one cover source.',
+      path: 'Retrain on ALASKA2 (80k+ images, many cameras). Both trainers already accept any folder.' },
+    { t: 'Deep-learning baselines (O7)', chip: ['planned', 'Planned'],
+      now: '13 KB model and ~0.15 s embed per 512² image, but no head-to-head with CNN methods yet.',
+      path: 'Benchmark against SteganoGAN and HiDDeN on speed, size, quality and robustness using the existing harness.' },
+    { t: 'Colour-aware attacks', chip: ['planned', 'Planned'],
+      now: 'The pipeline is luma-only; JPEG chroma subsampling effects are not modelled.',
+      path: 'Model the YCbCr 4:2:0 path in the attack simulator and optionally embed in chroma for extra capacity.' },
+    { t: 'Edge hardware validation', chip: ['planned', 'Planned'],
+      now: 'Designed for CPU-only field devices, but Raspberry Pi timings are not yet measured.',
+      path: 'Run `aide benchmark --inference` on ARM targets and publish the numbers alongside the desktop ones.' },
+  ],
+  roadmap: [
+    { when: '0–3 months', name: 'Phase 1 · Deploy & harden', items: [
+      ['Cloud deployment', 'Container is already built and health-checked in CI. Ship it behind HTTPS on a managed platform with API-key auth enabled.'],
+      ['Accounts, roles & audit trail', 'Operator and Analyst roles, per-user job history, and a tamper-evident log of every embed and screening request.'],
+      ['Channel-aware auto profile', 'Simulate WhatsApp / Telegram / e-mail re-encoding pipelines and pick the lightest profile that survives the chosen channel.'],
+      ['Scale training to ALASKA2', 'Retrain the decision engine and detector on 80k+ multi-camera images for better generalization.'],
+      ['Edge benchmark', 'Measure on Raspberry Pi / ARM and publish timings for field deployment.'],
+    ]},
+    { when: '3–9 months', name: 'Phase 2 · Resilience & reach', items: [
+      ['Geometric resilience', 'Registration template so rotated, truly cropped or re-framed images still decode.'],
+      ['Low-detectability mode', 'STC-based embedding with a learned distortion cost to defeat targeted steganalysis.'],
+      ['Colour & chroma pipeline', 'Model chroma subsampling and use colour channels for capacity.'],
+      ['Video & audio carriers', 'Extend the adaptive engine to video frames (temporal redundancy for ECC) and audio spectrograms.'],
+      ['Offline Android field app', 'CPU-only engine packaged for phones: embed and recover without network access.'],
+    ]},
+    { when: '9–18 months', name: 'Phase 3 · Platform & intelligence', items: [
+      ['Deep detector ensemble', 'Add SRNet-class CNN steganalysers next to the explainable detectors, with calibrated fusion.'],
+      ['SOC / SIEM integration', 'Webhooks and connectors (Splunk, ELK) for bulk screening at ports, borders and mail gateways.'],
+      ['Hardware-backed keys', 'HSM / secure-enclave key storage, key rotation and per-mission keys.'],
+      ['Adversarial co-training', 'Train embedder and detector against each other so each improves the other.'],
+      ['Provenance & watermarking', 'Robust, keyed ownership and authenticity marks for media in the deepfake era.'],
+    ]},
+  ],
+  domains: [
+    ['Defence & covert ops', 'Secure orders and reports through ordinary-looking images over untrusted channels.', '<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/>'],
+    ['Law enforcement & forensics', 'Screen seized devices and intercepted media for concealed data, with payload estimates.', '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'],
+    ['Medical imaging', 'Bind patient records to scans with tamper evidence, without changing diagnostic quality.', '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'],
+    ['Copyright & watermarking', 'Robust, keyed ownership marks that survive re-compression and resizing.', '<circle cx="12" cy="12" r="10"/><path d="M15 9.35a4 4 0 1 0 0 5.3"/>'],
+    ['Journalism & human rights', 'Protect sources in hostile environments where encrypted traffic itself is dangerous.', '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/>'],
+    ['Content authenticity', 'Detect edits and prove origin of images in the era of deepfakes.', '<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>'],
+    ['IoT & drone telemetry', 'CPU-only, tiny model: secure data inside camera feeds on constrained devices.', '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>'],
+    ['Enterprise data-loss prevention', 'Catch data exfiltration hidden inside images leaving the network.', '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'],
+  ],
+};
+
+let visionRendered = false;
+function renderVision() {
+  if (visionRendered) return;
+  visionRendered = true;
+  $('trlBar').innerHTML = [1,2,3,4,5,6,7,8,9].map(n =>
+    `<div class="${n <= 5 ? 'now' : n <= 7 ? 'next' : ''}" title="Technology Readiness Level ${n}">TRL ${n}</div>`).join('');
+
+  const kpi = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  const stripStatic = (rec) => kpi(rec, 'mean recovery · robust · 16 attacks × 30 covers') +
+    kpi('43.4 dB', 'PSNR at the quality profile') + kpi('13 KB', 'decision model, CPU only') + kpi('149', 'automated tests, CI on 3 Pythons');
+  $('visionStrip').innerHTML = stripStatic('99.7%');
+  api('/api/benchmark').then(b => {
+    if (!b.available || !b.summary.robust) return;
+    const sc = Object.values(b.summary.robust.scenarios);
+    const mean = 100 * sc.reduce((t, x) => t + x.recovery_rate, 0) / sc.length;
+    $('visionStrip').innerHTML = stripStatic(mean.toFixed(1) + '%');
+  }).catch(() => {});
+
+  $('chalGrid').innerHTML = VISION.field.map(c => `<div class="chal">
+      <div><div class="ctag p">Challenge</div><div class="ctitle">${c.p}</div><div class="ctext" style="margin-top:6px">${c.pt}</div></div>
+      <hr><div><div class="ctag s">AIDE's answer</div><div class="ctext" style="margin-top:6px">${c.s}</div></div>
+      <div class="cproof">${c.proof}</div></div>`).join('');
+
+  $('journey').innerHTML = VISION.journey.map(j => `<div class="jrow">
+      <div class="jprob">${j.prob}<small>${j.sub}</small></div>
+      <div class="jfix">${j.fix}</div>
+      <div>${j.cap ? `<span class="chip-s planned" style="background:rgba(52,211,153,0.13);color:var(--ok)">New · ${j.cap}</span>` :
+        `<div class="jbars"><span>0.1</span><div class="jbar before"><i data-w="${j.b}"></i></div><span class="n">${j.b}%</span>
+         <span style="color:var(--ok)">0.2</span><div class="jbar after"><i data-w="${j.a}"></i></div><span class="n" style="color:var(--ok)">${j.a}%</span></div>`}</div>
+    </div>`).join('');
+  requestAnimationFrame(() => setTimeout(() => document.querySelectorAll('#journey .jbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }), 60));
+
+  $('openGrid').innerHTML = VISION.open.map(o => `<div class="open">
+      <div class="otop"><div class="otitle">${o.t}</div><span class="chip-s ${o.chip[0]}">${o.chip[1]}</span></div>
+      <div class="orow"><b>Today:</b> ${o.now}</div>
+      <div class="orow"><b>Path forward:</b> ${o.path}</div></div>`).join('');
+
+  $('roadmap').innerHTML = VISION.roadmap.map(ph => `<div class="phase">
+      <div class="pbar"></div><div class="pwhen">${ph.when}</div><div class="pname">${ph.name}</div>
+      ${ph.items.map(([t, d]) => `<div class="ritem"><div class="rt"><span>${t}</span><span>›</span></div><div class="rd">${d}</div></div>`).join('')}
+    </div>`).join('');
+  document.querySelectorAll('#roadmap .ritem').forEach(el => el.addEventListener('click', () => el.classList.toggle('open')));
+
+  $('domainGrid').innerHTML = VISION.domains.map(([t, d, ico]) => `<div class="domain">
+      <div class="dico"><svg class="icon" viewBox="0 0 24 24">${ico}</svg></div><div class="dt">${t}</div><div class="dd">${d}</div></div>`).join('');
+}
 
 // ---------- Live health in the sidebar ----------
 fetch('/healthz').then(r => r.json()).then(h => {
