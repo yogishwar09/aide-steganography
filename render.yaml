@@ -1,0 +1,18 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository.
+# Builds the Dockerfile on the free plan and redeploys on every push to main.
+services:
+  - type: web
+    name: aide
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      # The free plan has 512 MB of RAM; one worker peaks at ~300 MB.
+      - key: WEB_CONCURRENCY
+        value: "1"
+      # Gates the versioned /api/v1 endpoints; the console stays open.
+      # Render generates the value; read it under the service's Environment tab.
+      - key: AIDE_API_KEY
+        generateValue: true

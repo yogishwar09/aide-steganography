@@ -13,7 +13,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PORT=5050
+    PORT=5050 \
+    WEB_CONCURRENCY=2
 
 # libgl/libglib: runtime libraries opencv-headless still links against.
 RUN apt-get update \
@@ -33,6 +34,8 @@ USER aide
 
 EXPOSE 5050
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5050/healthz').status == 200 else 1)"
+    CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:%s/healthz' % os.environ.get('PORT', '5050')).status == 200 else 1)"
 
-CMD ["sh", "-c", "gunicorn --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:${PORT} webapp.app:app"]
+# gunicorn reads its worker count from WEB_CONCURRENCY. Each worker peaks at
+# ~300 MB during a full demo run, so 512 MB hosts should set it to 1.
+CMD ["sh", "-c", "gunicorn --threads 4 --timeout 120 --bind 0.0.0.0:${PORT} webapp.app:app"]

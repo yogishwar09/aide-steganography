@@ -1,5 +1,8 @@
 """Publish the AIDE console + REST API to a Hugging Face Space (Docker SDK).
 
+Hugging Face requires a PRO subscription for Docker Spaces; for free
+hosting use the Render Blueprint in render.yaml instead.
+
 The Space builds the repository's Dockerfile, so it runs exactly what CI
 builds and health-checks. Only the files the image needs are uploaded
 (no tests, docs, datasets or local scratch images), with a Space-specific

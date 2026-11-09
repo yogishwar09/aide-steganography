@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Deployment
+- **Render Blueprint** (`render.yaml`): free-plan Docker deploy with one
+  worker, `/healthz` health check, a generated `AIDE_API_KEY` and
+  auto-deploy on push. gunicorn's worker count now comes from
+  `WEB_CONCURRENCY` (default 2 in the image).
 - **Hugging Face Spaces deploy** (`scripts/deploy_space.py`, `make deploy`):
   creates a Docker Space, uploads only what the image needs, and stores a
   generated `AIDE_API_KEY` as a Space secret.

@@ -204,11 +204,20 @@ returned as JSON (`{"error": ...}`). The server is stateless: the browser
 holds the stego image and sidecar between steps, and temp files are
 deleted after each request.
 
-### Deployment (Hugging Face Spaces)
+### Deployment
 
 The Docker image bakes in the trained models from `data/models` and pins
-the runtime versions they were built with (`constraints.txt`). To publish
-it as a public Space:
+the runtime versions they were built with (`constraints.txt`). gunicorn
+takes its worker count from `WEB_CONCURRENCY`; one worker peaks at about
+300 MB during a full demo run.
+
+**Render (free).** `render.yaml` is a Render Blueprint: in the Render
+dashboard choose *New → Blueprint* and pick this repository. It builds the
+Dockerfile on the free plan with one worker, health-checks `/healthz`,
+generates `AIDE_API_KEY`, and redeploys on every push to `main`. Free
+instances sleep after 15 minutes idle and take about a minute to wake.
+
+**Hugging Face Spaces (PRO).** Docker Spaces need a PRO subscription.
 
 ```bash
 pip install -e ".[deploy]"
@@ -216,10 +225,9 @@ hf auth login                      # once, with a write token
 python scripts/deploy_space.py     # or: make deploy
 ```
 
-The script creates `<your-username>/aide` (Docker SDK) if needed, uploads
-only what the image needs, and sets a random `AIDE_API_KEY` Space secret,
-saved locally to `.space_api_key` (gitignored). The Space builds the same
-Dockerfile CI builds and health-checks.
+The script creates `<your-username>/aide` if needed, uploads only what the
+image needs, and sets a random `AIDE_API_KEY` Space secret, saved locally
+to `.space_api_key` (gitignored).
 
 ## Architecture
 
