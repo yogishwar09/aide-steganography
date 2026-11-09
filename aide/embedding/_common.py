@@ -37,6 +37,18 @@ def extract_bits_pairwise(coeffs: np.ndarray, pairs: list[tuple[int, int]]) -> n
     return bits
 
 
+def pair_margins(coeffs: np.ndarray, pairs: list[tuple[int, int]]) -> np.ndarray:
+    """Signed soft decision per pair: coeff[i] - coeff[j]. The sign is the
+    hard bit (positive -> 1); the magnitude is how far an attack would
+    have had to push the pair to flip it, i.e. per-bit reliability. Used by
+    `aide.pipeline`'s reliability-guided (GMD) Reed-Solomon decoding."""
+    if not pairs:
+        return np.zeros(0, dtype=np.float64)
+    i_idx = np.fromiter((i for i, _ in pairs), dtype=np.int64, count=len(pairs))
+    j_idx = np.fromiter((j for _, j in pairs), dtype=np.int64, count=len(pairs))
+    return (coeffs[i_idx] - coeffs[j_idx]).astype(np.float64)
+
+
 def zigzag_indices(n: int) -> list[int]:
     """Flat (row-major) indices of an n x n grid visited in standard JPEG
     zigzag (diagonal) order, low frequency first."""

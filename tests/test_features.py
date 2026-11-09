@@ -3,7 +3,10 @@ from __future__ import annotations
 import numpy as np
 
 from aide.features import (
-    choose_block_size, extract_block_features, extract_image_features, partition_blocks,
+    choose_block_size,
+    extract_block_features,
+    extract_image_features,
+    partition_blocks,
 )
 
 
@@ -53,3 +56,18 @@ def test_extract_image_features_matches_block_count(synthetic_image):
     assert len(blocks) == features.shape[0]
     assert features.shape[1] == 4
     assert np.all(np.isfinite(features))
+
+
+def test_vectorised_features_match_per_block_definitions(real_sample_image_path):
+    """extract_image_features batches GLCM energy / entropy / variance for
+    speed (~3x); it must stay numerically identical to the per-block
+    reference functions the decision engine was trained on."""
+    import numpy as np
+    from PIL import Image
+
+    from aide.features import extract_block_features, extract_image_features
+
+    gray = np.array(Image.open(real_sample_image_path).convert("L"))
+    blocks, fast = extract_image_features(gray)
+    slow = np.array([extract_block_features(gray[b.slice()]) for b in blocks])
+    assert np.allclose(fast, slow, atol=1e-12)

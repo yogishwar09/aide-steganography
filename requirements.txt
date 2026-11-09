@@ -13,3 +13,5 @@ psutil
 joblib
 flask>=3.0
 reportlab>=4.0
+gunicorn>=21.2
+ruff>=0.5

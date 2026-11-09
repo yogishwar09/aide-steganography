@@ -35,7 +35,7 @@ from __future__ import annotations
 import numpy as np
 import pywt
 
-from ._common import embed_bits_pairwise, extract_bits_pairwise
+from ._common import embed_bits_pairwise, extract_bits_pairwise, pair_margins
 
 WAVELET = "haar"
 LEVEL = 2
@@ -69,7 +69,8 @@ def capacity_bits(block_shape: tuple[int, int], bpp: int) -> int:
     return _n_pairs(block_shape, bpp)
 
 
-def embed(block: np.ndarray, bpp: int, bits: np.ndarray) -> np.ndarray:
+def embed(block: np.ndarray, bpp: int, bits: np.ndarray, delta: float | None = None) -> np.ndarray:
+    delta = DELTA if delta is None else float(delta)
     n_pairs = _n_pairs(block.shape, bpp)
     if len(bits) != n_pairs:
         raise ValueError(f"expected {n_pairs} bits, got {len(bits)}")
@@ -78,7 +79,7 @@ def embed(block: np.ndarray, bpp: int, bits: np.ndarray) -> np.ndarray:
     coeffs = _decompose(block)
     cA2 = coeffs[0]
     flat = cA2.flatten()
-    flat = embed_bits_pairwise(flat, pairs, np.asarray(bits, dtype=np.uint8), DELTA)
+    flat = embed_bits_pairwise(flat, pairs, np.asarray(bits, dtype=np.uint8), delta)
     coeffs[0] = flat.reshape(cA2.shape)
 
     rec = _reconstruct(coeffs, block.shape)
@@ -93,3 +94,10 @@ def extract(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndar
     flat = coeffs[0].flatten()
     bits = extract_bits_pairwise(flat, pairs)
     return bits if num_bits is None else bits[:num_bits]
+
+
+def extract_soft(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndarray:
+    n_pairs = _n_pairs(block.shape, bpp)
+    pairs = [(2 * k, 2 * k + 1) for k in range(n_pairs)]
+    margins = pair_margins(_decompose(block)[0].flatten(), pairs)
+    return margins if num_bits is None else margins[:num_bits]

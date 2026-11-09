@@ -50,6 +50,9 @@ from . import crypto, ecc, tamper
 from .embedding import METHODS
 from .features import extract_image_features, partition_blocks
 from .model import AIDEModel
+from .profiles import LEGACY_PROFILE, RobustnessProfile, get_profile
+
+SIDECAR_VERSION = "aide-0.2"
 
 
 class AideCapacityError(Exception):
@@ -127,10 +130,16 @@ class Sidecar:
     tag_len: int
     embedding_map: list[EmbeddingMapEntry]
     references: list[tamper.BlockReference]
+    profile: RobustnessProfile = LEGACY_PROFILE
+    ecc_params: ecc.ECCParams = ecc.DEFAULT_PARAMS
+    kdf: str = crypto.KDF_SHA256
 
     def to_json(self) -> str:
         payload = {
-            "version": "aide-0.1",
+            "version": SIDECAR_VERSION,
+            "profile": self.profile.to_dict(),
+            "ecc": self.ecc_params.to_dict(),
+            "kdf": self.kdf,
             "width": self.width,
             "height": self.height,
             "block_size": self.block_size,
@@ -144,7 +153,7 @@ class Sidecar:
         return json.dumps(payload, indent=2)
 
     @classmethod
-    def from_json(cls, text: str) -> "Sidecar":
+    def from_json(cls, text: str) -> Sidecar:
         payload = json.loads(text)
         return cls(
             width=payload["width"], height=payload["height"], block_size=payload["block_size"],
@@ -153,6 +162,12 @@ class Sidecar:
             ciphertext_len=payload["ciphertext_len"], tag_len=payload["tag_len"],
             embedding_map=[EmbeddingMapEntry(**e) for e in payload["embedding_map"]],
             references=[tamper.BlockReference(**r) for r in payload["references"]],
+            # aide-0.1 sidecars predate profiles: decode them with the
+            # exact fixed parameters they were produced with.
+            profile=(RobustnessProfile.from_dict(payload["profile"]) if "profile" in payload
+                     else LEGACY_PROFILE),
+            ecc_params=ecc.ECCParams.from_dict(payload.get("ecc")),
+            kdf=payload.get("kdf", crypto.KDF_SHA256),
         )
 
 
@@ -163,7 +178,7 @@ class EmbedResult:
     mode: str = "L"                                   # "L" or "RGB" - the cover's original mode
     chroma: tuple[np.ndarray, np.ndarray] | None = None  # (Cb, Cr), untouched, for RGB covers
 
-    def compose(self) -> "Image.Image":
+    def compose(self) -> Image.Image:
         """The full, ready-to-save stego image (RGB recombined with the
         original chroma if the cover was color; identical to `stego`
         as a grayscale image otherwise)."""
@@ -201,7 +216,8 @@ DEFAULT_FRAGILE_METHOD_BUDGETS = {
 
 
 def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEModel,
-          fragile_method_budgets: dict[str, float] | None = None) -> EmbedResult:
+          fragile_method_budgets: dict[str, float] | None = None,
+          profile: str | RobustnessProfile | None = None) -> EmbedResult:
     """`fragile_method_budgets` caps how much of the RS-encoded payload may
     be carried by each of a set of "fragile" methods (default: LSB 1% -
     see DEFAULT_FRAGILE_METHOD_BUDGETS above for the measurement behind
@@ -217,8 +233,14 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
     attacks, interleaving alone can't spread the resulting damage within
     Reed-Solomon's ~6.3% blind-correction budget per codeword. This is a
     real, measured trade-off the report's formula alone doesn't resolve.
+
+    `profile` (name or `RobustnessProfile`, default "balanced") selects the
+    coefficient deltas, Reed-Solomon strength, and default budgets - see
+    aide/profiles.py. An explicit `fragile_method_budgets` overrides the
+    profile's budgets.
     """
-    budgets = dict(DEFAULT_FRAGILE_METHOD_BUDGETS if fragile_method_budgets is None
+    prof = get_profile(profile)
+    budgets = dict(prof.fragile_budgets if fragile_method_budgets is None
                     else fragile_method_budgets)
 
     loaded = load_image(cover_path)
@@ -229,56 +251,51 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
     decisions = model.decide(features)
     kept = sorted((d for d in decisions if d.keep), key=lambda d: d.rank)
 
-    encrypted = crypto.encrypt(message, image_hash, shared_secret)
+    encrypted = crypto.encrypt(message, image_hash, shared_secret, kdf=crypto.DEFAULT_KDF)
     protected = encrypted.ciphertext + encrypted.tag
-    encoded = ecc.encode(protected)
-    interleaved = ecc.interleave(encoded)
+    ecc_params = ecc.plan(len(protected), nsym=prof.nsym, min_codewords=prof.min_codewords)
+    encoded = ecc.encode(protected, ecc_params)
+    interleaved = ecc.interleave(encoded, ecc_params.codeword_len)
     all_bits = _bytes_to_bits(interleaved)
     total_bits = len(all_bits)
     bit_budgets = {m: int(total_bits * f) for m, f in budgets.items()}
-    used_bits_by_method: dict[str, int] = {m: 0 for m in budgets}
 
-    stego = gray.copy()
-    embedding_map: list[EmbeddingMapEntry] = []
-    cursor = 0
+    def allocate(bpp_cap: int) -> tuple[list[tuple], int, dict[str, int]]:
+        """Plan (decision, bpp, bit_start, n_bits) per block without embedding."""
+        plan, cursor = [], 0
+        used = {m: 0 for m in budgets}
+        for d in kept:
+            if cursor >= total_bits:
+                break
+            block = blocks[d.block_index]
+            bpp = min(d.bpp, bpp_cap)
+            cap_bits = METHODS[d.method].capacity_bits((block.size, block.size), bpp)
+            if cap_bits <= 0:
+                continue
+            limit = cap_bits
+            if d.method in bit_budgets:
+                # A single block's capacity can dwarf the remaining budget in
+                # one step for high-capacity methods, so the budget must also
+                # cap *how much* of this block gets used, not just whether
+                # it's considered at all - otherwise one block blows the cap.
+                limit = min(limit, bit_budgets[d.method] - used[d.method])
+                if limit <= 0:
+                    continue
+            n = min(limit, total_bits - cursor)
+            plan.append((d, bpp, cursor, n))
+            if d.method in used:
+                used[d.method] += n
+            cursor += n
+        return plan, cursor, used
 
-    def place(d, max_bits: int | None = None) -> int:
-        nonlocal cursor
-        block = blocks[d.block_index]
-        mod = METHODS[d.method]
-        cap_bits = mod.capacity_bits((block.size, block.size), d.bpp)
-        use_bits = min(cap_bits, total_bits - cursor, max_bits if max_bits is not None else cap_bits)
-        chunk_bits = all_bits[cursor:cursor + use_bits]
-        full_bits = np.zeros(cap_bits, dtype=np.uint8)
-        full_bits[:use_bits] = chunk_bits
-
-        ys, xs = block.slice()
-        stego[ys, xs] = mod.embed(gray[ys, xs], d.bpp, full_bits)
-        embedding_map.append(EmbeddingMapEntry(
-            block_index=block.index, method=d.method, bpp=d.bpp,
-            bit_start=cursor, bit_end=cursor + use_bits,
-        ))
-        cursor += use_bits
-        return use_bits
-
-    for d in kept:
+    # Prefer the profile's bpp cap (fewer, lower-frequency DCT pairs per
+    # block measured markedly more robust to median filtering and 0.5x
+    # rescaling at equal PSNR - see aide/profiles.py); relax it one step at
+    # a time only when the message would not otherwise fit.
+    for bpp_cap in range(prof.max_bpp, 5):
+        plan, cursor, used_bits_by_method = allocate(bpp_cap)
         if cursor >= total_bits:
             break
-        block = blocks[d.block_index]
-        mod = METHODS[d.method]
-        if mod.capacity_bits((block.size, block.size), d.bpp) <= 0:
-            continue
-        if d.method in bit_budgets:
-            # A single block's capacity can dwarf the remaining budget in
-            # one step for high-capacity methods, so the budget must also
-            # cap *how much* of this block gets used, not just whether
-            # it's considered at all - otherwise one block blows the cap.
-            remaining_budget = bit_budgets[d.method] - used_bits_by_method[d.method]
-            if remaining_budget <= 0:
-                continue
-            used_bits_by_method[d.method] += place(d, max_bits=remaining_budget)
-        else:
-            place(d)
 
     if cursor < total_bits:
         # Deliberately not falling back to unlimited fragile-method usage
@@ -290,11 +307,26 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
         # capacity/more textured cover image, or explicitly relax
         # `fragile_method_budgets` and accept reduced robustness.
         raise AideCapacityError(
-            f"cover image capacity insufficient at fragile_method_budgets={budgets}: "
-            f"needed {total_bits} bits after ECC encoding, only {cursor} bits available "
-            f"(used by method: {used_bits_by_method}) across {len(kept)} AIDE-selected "
-            f"blocks. Try a shorter message, a more textured cover image, or relaxed budgets."
+            f"cover image capacity insufficient for profile {prof.name!r} "
+            f"(fragile_method_budgets={budgets}): needed {total_bits} bits after ECC encoding, "
+            f"only {cursor} bits available (used by method: {used_bits_by_method}) across "
+            f"{len(kept)} AIDE-selected blocks. Try a shorter message, a more textured cover "
+            f"image, a lighter profile, or relaxed budgets."
         )
+
+    stego = gray.copy()
+    embedding_map: list[EmbeddingMapEntry] = []
+    for d, bpp, start, n in plan:
+        block = blocks[d.block_index]
+        mod = METHODS[d.method]
+        cap_bits = mod.capacity_bits((block.size, block.size), bpp)
+        full_bits = np.zeros(cap_bits, dtype=np.uint8)
+        full_bits[:n] = all_bits[start:start + n]
+        ys, xs = block.slice()
+        stego[ys, xs] = mod.embed(gray[ys, xs], bpp, full_bits, delta=prof.delta_for(d.method))
+        embedding_map.append(EmbeddingMapEntry(
+            block_index=block.index, method=d.method, bpp=bpp, bit_start=start, bit_end=start + n,
+        ))
 
     used_blocks = [blocks[e.block_index] for e in embedding_map]
     references = tamper.build_references(stego, used_blocks)
@@ -304,6 +336,7 @@ def embed(cover_path: Path, message: bytes, shared_secret: bytes, model: AIDEMod
         nonce=encrypted.nonce, image_hash=image_hash,
         ciphertext_len=len(encrypted.ciphertext), tag_len=len(encrypted.tag),
         embedding_map=embedding_map, references=references,
+        profile=prof, ecc_params=ecc_params, kdf=crypto.DEFAULT_KDF,
     )
     return EmbedResult(stego=stego, sidecar=sidecar, mode=loaded.mode, chroma=loaded.chroma)
 
@@ -316,6 +349,41 @@ class RecoverResult:
     tamper_report: tamper.TamperReport | None
     erasure_count: int
     total_bytes: int
+    corrected_bytes: int = 0       # byte positions Reed-Solomon actually repaired
+    gmd_codewords: int = 0         # codewords rescued by reliability-guided erasures
+
+
+# Normalised reliability assigned to LSB bits (which carry no analog
+# margin): far below any DCT/DWT bit, so reliability-guided decoding
+# erases LSB-carried bytes first - matching their measured ~50% error rate
+# under every attack.
+_LSB_RELIABILITY = 0.05
+# Per-method prior on top of the coefficient margin. Measured on BOSSbase
+# under 3x3 median filtering: DCT bits flip ~0.5% of the time, DWT bits
+# ~13%, and DWT flips frequently happen at *large* margins (median
+# filtering resamples the 2x2 neighbourhoods Haar averages over), so a
+# DWT margin alone overstates its trustworthiness.
+_METHOD_RELIABILITY_WEIGHT = {"DCT": 1.0, "DWT": 0.3}
+
+
+def _extract_stream(stego: np.ndarray, sidecar: Sidecar, blocks) -> tuple[np.ndarray, np.ndarray]:
+    """Hard bits plus a normalised per-bit reliability (|margin| / delta,
+    so 1.0 = exactly as embedded, ~0 = on the decision boundary)."""
+    total_bits = sidecar.embedding_map[-1].bit_end if sidecar.embedding_map else 0
+    bits = np.zeros(total_bits, dtype=np.uint8)
+    rel = np.zeros(total_bits, dtype=np.float64)
+    for entry in sidecar.embedding_map:
+        block = blocks[entry.block_index]
+        mod = METHODS[entry.method]
+        ys, xs = block.slice()
+        n_bits = entry.bit_end - entry.bit_start
+        soft = mod.extract_soft(stego[ys, xs], entry.bpp, num_bits=n_bits)
+        bits[entry.bit_start:entry.bit_end] = (soft > 0).astype(np.uint8)
+        delta = sidecar.profile.delta_for(entry.method)
+        rel[entry.bit_start:entry.bit_end] = (
+            np.abs(soft) / delta * _METHOD_RELIABILITY_WEIGHT.get(entry.method, 1.0)
+            if delta else _LSB_RELIABILITY)
+    return bits, rel
 
 
 def recover(stego: np.ndarray, sidecar: Sidecar, shared_secret: bytes) -> RecoverResult:
@@ -323,48 +391,50 @@ def recover(stego: np.ndarray, sidecar: Sidecar, shared_secret: bytes) -> Recove
         return RecoverResult(False, None, "image dimensions do not match sidecar", None, 0, 0)
 
     blocks = partition_blocks(sidecar.height, sidecar.width, sidecar.block_size)
-    used_blocks = [blocks[e.block_index] for e in sidecar.embedding_map]
-
     report = tamper.analyze(stego, blocks, sidecar.references)
 
-    total_bits = sidecar.embedding_map[-1].bit_end if sidecar.embedding_map else 0
-    all_bits = np.zeros(total_bits, dtype=np.uint8)
+    all_bits, bit_rel = _extract_stream(stego, sidecar, blocks)
+    total_bits = len(all_bits)
     unreliable_bits = np.zeros(total_bits, dtype=bool)
-
-    for entry, block in zip(sidecar.embedding_map, used_blocks):
-        mod = METHODS[entry.method]
-        ys, xs = block.slice()
-        n_bits = entry.bit_end - entry.bit_start
-        bits = mod.extract(stego[ys, xs], entry.bpp, num_bits=n_bits)
-        all_bits[entry.bit_start:entry.bit_end] = bits
-        if report.erasure_mask[block.index]:
+    for entry in sidecar.embedding_map:
+        if report.erasure_mask[entry.block_index]:
             unreliable_bits[entry.bit_start:entry.bit_end] = True
 
+    params = sidecar.ecc_params
+    n = params.codeword_len
     total_bytes = total_bits // 8
+    stats = ecc.DecodeStats()
     if total_bytes:
         interleaved = np.packbits(all_bits).tobytes()
         unreliable_bytes = unreliable_bits.reshape(-1, 8).any(axis=1)
-        encoded = ecc.deinterleave(interleaved)
-        unreliable_deint = ecc.deinterleave_mask(unreliable_bytes)
+        byte_rel = bit_rel.reshape(-1, 8).min(axis=1)  # a byte is only as good as its weakest bit
+        encoded = ecc.deinterleave(interleaved, n)
+        unreliable_deint = ecc.deinterleave_mask(unreliable_bytes, n)
+        rel_deint = ecc.deinterleave_mask(byte_rel, n)
         erase_positions = list(np.where(unreliable_deint)[0])
     else:
-        encoded = b""
-        erase_positions = []
+        encoded, rel_deint, erase_positions = b"", None, []
+
+    def _fail(msg: str) -> RecoverResult:
+        return RecoverResult(False, None, msg, report, len(erase_positions), total_bytes,
+                             stats.corrected_bytes, stats.gmd_codewords)
 
     try:
-        protected = ecc.decode(encoded, erase_positions=erase_positions or None)
+        protected = ecc.decode_with_reliability(encoded, rel_deint, erase_positions or None,
+                                                params, stats)
     except ecc.AideECCError as exc:
-        return RecoverResult(False, None, str(exc), report, len(erase_positions), total_bytes)
+        return _fail(str(exc))
 
     ciphertext = protected[:sidecar.ciphertext_len]
     tag = protected[sidecar.ciphertext_len:sidecar.ciphertext_len + sidecar.tag_len]
     payload = crypto.EncryptedPayload(ciphertext=ciphertext, nonce=sidecar.nonce, tag=tag)
     try:
-        plaintext = crypto.decrypt(payload, sidecar.image_hash, shared_secret)
+        plaintext = crypto.decrypt(payload, sidecar.image_hash, shared_secret, sidecar.kdf)
     except crypto.AideAuthenticationError as exc:
-        return RecoverResult(False, None, str(exc), report, len(erase_positions), total_bytes)
+        return _fail(str(exc))
 
-    return RecoverResult(True, plaintext, None, report, len(erase_positions), total_bytes)
+    return RecoverResult(True, plaintext, None, report, len(erase_positions), total_bytes,
+                         stats.corrected_bytes, stats.gmd_codewords)
 
 
 def save_sidecar(sidecar: Sidecar, path: Path) -> None:
@@ -373,3 +443,65 @@ def save_sidecar(sidecar: Sidecar, path: Path) -> None:
 
 def load_sidecar(path: Path) -> Sidecar:
     return Sidecar.from_json(Path(path).read_text())
+
+
+def _encoded_bits(message_len: int, prof: RobustnessProfile) -> int:
+    protected = message_len + crypto.TAG_LEN
+    params = ecc.plan(protected, nsym=prof.nsym, min_codewords=prof.min_codewords)
+    n_cw = -(-(protected + ecc.LENGTH_HEADER) // params.data_len)
+    return n_cw * params.codeword_len * 8
+
+
+def max_message_bytes(available_bits: int, prof: RobustnessProfile) -> int:
+    """Largest plaintext length whose encrypted + RS-encoded size fits in
+    `available_bits` (binary search over the deterministic ECC plan)."""
+    lo, hi = 0, max(0, available_bits // 8)
+    if _encoded_bits(0, prof) > available_bits:
+        return 0
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if _encoded_bits(mid, prof) <= available_bits:
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
+
+def capacity_report(cover_path: Path, model: AIDEModel) -> dict:
+    """Exact sidecar-mode capacity per profile from a single feature pass:
+    the bits the AIDE-selected blocks offer (fragile-method budgets
+    applied, bpp cap fully relaxed as `embed` would as a last resort),
+    inverted through each profile's ECC plan."""
+    from .profiles import PROFILES
+
+    gray = load_image(cover_path).y
+    blocks, features = extract_image_features(gray)
+    kept = [d for d in model.decide(features) if d.keep]
+    out = {}
+    for name, prof in PROFILES.items():
+        robust_bits = 0
+        fragile_bits = {m: 0 for m in prof.fragile_budgets}
+        for d in kept:
+            b = blocks[d.block_index]
+            cap = METHODS[d.method].capacity_bits((b.size, b.size), d.bpp)
+            if d.method in fragile_bits:
+                fragile_bits[d.method] += cap
+            else:
+                robust_bits += cap
+        # Fragile budgets are a share of the *total* payload, so with
+        # robust capacity R and share f the payload T must satisfy
+        # T * (1 - sum f) <= R (and each f*T <= that method's capacity).
+        share = sum(f for m, f in prof.fragile_budgets.items() if fragile_bits.get(m))
+        total = int(robust_bits / (1 - share)) if share < 1 else robust_bits
+        for m, f in prof.fragile_budgets.items():
+            if f > 0:
+                total = min(total, int(robust_bits + fragile_bits[m] / f))
+        preferred = sum(METHODS[d.method].capacity_bits((blocks[d.block_index].size,) * 2,
+                                                        min(d.bpp, prof.max_bpp))
+                        for d in kept if d.method not in prof.fragile_budgets
+                        or prof.fragile_budgets[d.method] > 0)
+        out[name] = {
+            "max_message_bytes": max_message_bytes(total, prof),
+            "max_bytes_at_preferred_bpp_cap": max_message_bytes(preferred, prof),
+        }
+    return out

@@ -75,6 +75,9 @@ def scaling(gray: np.ndarray, factor: float = 0.5) -> np.ndarray:
     return cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR)
 
 
+# Attacks that take a `seed` kwarg (randomised), for reproducible benchmarks.
+SEEDED_ATTACKS = frozenset({"gaussian_noise", "salt_pepper", "cropping", "splicing"})
+
 ATTACKS = {
     "compression": compression,
     "gaussian_noise": gaussian_noise,

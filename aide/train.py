@@ -18,6 +18,14 @@ Two things are learned, from real image blocks, not assumed:
 
 The trained classifier's normalised feature_importances_ become the
 explainable (alpha, beta, gamma, delta) weights in aide.scoring.
+
+Two classifier families are supported, matching report phase 3 ("train
+lightweight decision tree and tiny MLP"): `--classifier tree` (default;
+importances are the tree's impurity-based feature_importances_) and
+`--classifier mlp` (a 16-8 hidden-unit MLP on standardised features;
+importances are permutation importances on the validation split, so the
+scoring weights stay explainable either way). `aide benchmark --inference`
+measures per-block inference latency for report O1's <5 ms target.
 """
 from __future__ import annotations
 
@@ -28,8 +36,12 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import accuracy_score, mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 from .embedding import METHODS
@@ -125,8 +137,25 @@ def build_training_set(image_paths: list[Path], target_psnr: float, seed: int = 
     return X, method_labels, bpp_labels, t_low, e_high
 
 
+CLASSIFIERS = ("tree", "mlp")
+
+
+def _make_models(kind: str, seed: int):
+    if kind == "tree":
+        return (DecisionTreeClassifier(max_depth=6, min_samples_leaf=10, random_state=seed),
+                DecisionTreeRegressor(max_depth=6, min_samples_leaf=10, random_state=seed))
+    if kind == "mlp":
+        mlp = dict(hidden_layer_sizes=(16, 8), max_iter=400, random_state=seed)
+        # early_stopping only on the regressor: sklearn's MLPClassifier
+        # early-stopping scorer can't handle string class labels.
+        return (make_pipeline(StandardScaler(), MLPClassifier(**mlp)),
+                make_pipeline(StandardScaler(), MLPRegressor(early_stopping=True, **mlp)))
+    raise ValueError(f"unknown classifier {kind!r}; choose from {CLASSIFIERS}")
+
+
 def train(image_dir: Path, out_dir: Path, target_psnr: float = DEFAULT_TARGET_PSNR,
-          max_images: int | None = None, max_blocks: int | None = 4000, seed: int = 0) -> dict:
+          max_images: int | None = None, max_blocks: int | None = 4000, seed: int = 0,
+          classifier: str = "tree") -> dict:
     t0 = time.perf_counter()
     image_paths = list_images(image_dir)
     if not image_paths:
@@ -143,7 +172,7 @@ def train(image_dir: Path, out_dir: Path, target_psnr: float = DEFAULT_TARGET_PS
     X_train, X_val, y_train, y_val = train_test_split(
         X, method_labels, test_size=0.2, random_state=seed, stratify=strat
     )
-    method_clf = DecisionTreeClassifier(max_depth=6, min_samples_leaf=10, random_state=seed)
+    method_clf, bpp_template = _make_models(classifier, seed)
     method_clf.fit(X_train, y_train)
     train_acc = accuracy_score(y_train, method_clf.predict(X_train))
     val_acc = accuracy_score(y_val, method_clf.predict(X_val))
@@ -153,11 +182,15 @@ def train(image_dir: Path, out_dir: Path, target_psnr: float = DEFAULT_TARGET_PS
     if kept_mask.sum() >= 10:
         Xb, yb = X[kept_mask], bpp_labels[kept_mask]
         Xb_train, Xb_val, yb_train, yb_val = train_test_split(Xb, yb, test_size=0.2, random_state=seed)
-        bpp_reg = DecisionTreeRegressor(max_depth=6, min_samples_leaf=10, random_state=seed)
+        bpp_reg = bpp_template
         bpp_reg.fit(Xb_train, yb_train)
         bpp_val_mae = float(mean_absolute_error(yb_val, bpp_reg.predict(Xb_val)))
 
-    importances = method_clf.feature_importances_.astype(float)
+    if classifier == "tree":
+        importances = method_clf.feature_importances_.astype(float)
+    else:
+        importances = np.clip(permutation_importance(
+            method_clf, X_val, y_val, n_repeats=5, random_state=seed).importances_mean, 0, None)
     total = importances.sum()
     importances = importances / total if total > 0 else np.array([0.25, 0.25, 0.25, 0.25])
     weights = ScoringWeights(*[float(v) for v in importances])
@@ -177,6 +210,7 @@ def train(image_dir: Path, out_dir: Path, target_psnr: float = DEFAULT_TARGET_PS
         "dataset_dir": str(image_dir),
         "num_images": len(image_paths),
         "num_blocks": int(len(X)),
+        "classifier": classifier,
         "target_psnr_db": target_psnr,
         "method_train_accuracy": float(train_acc),
         "method_val_accuracy": float(val_acc),
@@ -204,8 +238,11 @@ def main(argv: list[str] | None = None) -> None:
                               "minutes and measured 0.877. Pass a larger value (or enough to "
                               "exceed your dataset's size) to use everything available.")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--classifier", choices=CLASSIFIERS, default="tree",
+                        help="decision-engine family (report phase 3: decision tree or tiny MLP)")
     args = parser.parse_args(argv)
-    meta = train(args.images, args.out, args.target_psnr, args.max_images, args.max_blocks, args.seed)
+    meta = train(args.images, args.out, args.target_psnr, args.max_images, args.max_blocks, args.seed,
+                 classifier=args.classifier)
     print(json.dumps(meta, indent=2))
 
 

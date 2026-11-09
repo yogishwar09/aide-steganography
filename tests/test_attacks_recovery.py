@@ -1,12 +1,11 @@
 """Attack-recovery integration tests.
 
-These report *measured* behavior, not the report's aspirational targets
-(which assume full ALASKA2-scale training - see README). A short message
-fits in a single Reed-Solomon codeword and gets no benefit from block
-interleaving at all (interleaving only helps once damage can be spread
-*across* codewords), so these tests deliberately use a longer,
-multi-codeword message - matching what aide/cli.py's `evaluate` command
-defaults to.
+These report *measured* behavior on a real BOSSbase cover, using a longer
+(~470-byte) message that spans several Reed-Solomon codewords - the
+default of aide/cli.py's `evaluate` command. Short messages are split into
+shortened codewords automatically (aide/ecc.py's `plan`), so interleaving
+protects them too; see tests/test_profiles_and_blind.py for those, and
+`aide benchmark` for the multi-image recovery rates quoted in the README.
 """
 from __future__ import annotations
 
@@ -82,44 +81,62 @@ def test_mild_noise_recovers(embedded):
     assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
 
 
-@pytest.mark.xfail(
-    reason="Boundary-sensitive, not a hard failure (see README 'What doesn't "
-           "work yet'): after capping DCT's coefficient-pair selection to a "
-           "measured-robust frequency band and capping LSB/DWT's payload "
-           "share (aide/pipeline.py's DEFAULT_FRAGILE_METHOD_BUDGETS), this "
-           "test's per-codeword error count sits right at Reed-Solomon's "
-           "t=16 blind-correction threshold rather than far past it as it "
-           "used to. It passes on most runs (this is marked strict=False so "
-           "an unexpected pass doesn't fail CI) but can still fail depending "
-           "on tiny floating-point rounding differences in scipy's DCT "
-           "(observed to vary run-to-run at this margin, plausibly from "
-           "non-deterministic summation order in threaded BLAS). A real fix "
-           "needs either a small correction-budget safety margin in the AIDE "
-           "capacity allocator or slightly more conservative DCT/DWT caps -"
-           "not yet implemented.",
-    strict=False,
-)
 def test_median_filter_recovers(embedded):
+    """Formerly an xfail sitting right at RS's t=16 boundary. Fixed by (a)
+    routing payload away from LSB/DWT, which caused ~40% of median-filter
+    bit errors on ~2% of the bits, (b) the profile's preferred bpp cap
+    (fewer, lower-frequency DCT pairs), and (c) RS(255,191)-ratio parity -
+    see aide/profiles.py. Measured 25/25 BOSSbase covers."""
     attacked = attacks.median_filter(embedded.stego, ksize=3)
     rec = pipeline.recover(attacked, embedded.sidecar, SECRET)
     assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
 
 
-@pytest.mark.xfail(
-    reason="Known, documented limitation - and per the report's own text, "
-           "expected: 'Scaling attacks are the most damaging' (report "
-           "section 2.3). A 2x downscale-then-restore destroys far more "
-           "information than 3x3 median filtering; measured per-codeword "
-           "error counts here (~60-70 out of a 255-byte codeword) are well "
-           "past Reed-Solomon's correction budget even with DCT carrying "
-           "nearly the whole payload, not a close boundary case like "
-           "test_median_filter_recovers above. Milder scaling (factor=0.75) "
-           "does recover reliably - see README 'What actually works'.",
-    strict=False,
-)
-def test_scaling_recovers(embedded):
-    attacked = attacks.scaling(embedded.stego, factor=0.5)
-    rec = pipeline.recover(attacked, embedded.sidecar, SECRET)
+SHORT_MESSAGE = MULTI_CODEWORD_MESSAGE[:156]
+
+
+def test_heavy_scaling_recovers_with_default_profile(high_capacity_sample, trained_model):
+    """0.5x down-and-up rescaling - "the most damaging" attack per report
+    section 2.3, and a hard failure in AIDE 0.1. The profile's preferred
+    bpp cap keeps payload in the low mid-frequency DCT pairs that survive
+    resampling (measured 24/25 BOSSbase covers at the balanced profile with
+    a 156-byte message). Capacity-dependent: a message too long for the
+    cap forces it to relax (see pipeline.embed), and 0.5x survival at the
+    balanced profile is then lost - use "robust" for long messages (below)."""
+    res = pipeline.embed(high_capacity_sample, SHORT_MESSAGE, SECRET, trained_model)
+    attacked = attacks.scaling(res.stego, factor=0.5)
+    rec = pipeline.recover(attacked, res.sidecar, SECRET)
+    assert rec.success and rec.plaintext == SHORT_MESSAGE
+
+
+def test_heavy_scaling_recovers_long_message_with_robust_profile(embedded_robust):
+    attacked = attacks.scaling(embedded_robust.stego, factor=0.5)
+    rec = pipeline.recover(attacked, embedded_robust.sidecar, SECRET)
+    assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
+
+
+@pytest.fixture
+def embedded_robust(high_capacity_sample, trained_model):
+    try:
+        return pipeline.embed(high_capacity_sample, MULTI_CODEWORD_MESSAGE, SECRET, trained_model,
+                              profile="robust")
+    except pipeline.AideCapacityError:
+        pytest.skip("sample image lacks capacity for the robust profile")
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_robust_profile_meets_o4_gaussian_noise_sigma_20(embedded_robust, seed):
+    """Report O4's explicit noise target, end-to-end. Unreachable in AIDE
+    0.1 at any single setting; met by the robust profile's larger DCT delta
+    + RS parity + reliability-guided (GMD) decoding."""
+    attacked = attacks.gaussian_noise(embedded_robust.stego, sigma=20, seed=seed)
+    rec = pipeline.recover(attacked, embedded_robust.sidecar, SECRET)
+    assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
+
+
+def test_robust_profile_survives_salt_and_pepper(embedded_robust):
+    attacked = attacks.salt_and_pepper(embedded_robust.stego, amount=0.01, seed=1)
+    rec = pipeline.recover(attacked, embedded_robust.sidecar, SECRET)
     assert rec.success and rec.plaintext == MULTI_CODEWORD_MESSAGE
 
 

@@ -38,8 +38,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.fftpack import dct, idct
 
-from ._common import embed_bits_pairwise, extract_bits_pairwise, zigzag_indices
-
+from ._common import embed_bits_pairwise, extract_bits_pairwise, pair_margins, zigzag_indices
 
 # Calibrated empirically against cv2 JPEG quality=50 re-compression of the
 # whole stego image (not just the isolated block): deltas much below this
@@ -58,13 +57,12 @@ from ._common import embed_bits_pairwise, extract_bits_pairwise, zigzag_indices
 #     80      24.8 dB      20/20        20/20         18/20
 #    150      19.7 dB      20/20        20/20         20/20
 #
-# 40 is the default because it's the smallest delta that already survives
-# JPEG and median filtering fully (see the pair-count table above) without
-# needlessly sacrificing image quality for a noise level (sigma=20) this
-# project doesn't guarantee elsewhere either (see README's "What doesn't
-# work yet") - LSB and DWT would need similar increases to actually reach
-# report O4's sigma=20 target end-to-end, which is future work, not a
-# one-line change.
+# DELTA below is only the fallback when no explicit delta is passed. In
+# the pipeline the delta comes from the robustness profile
+# (aide/profiles.py: 20 / 36 / 64 / 80), which pairs it with matching
+# Reed-Solomon parity and reliability-guided decoding - that combination,
+# not delta alone, is what reaches report O4's sigma=20 target end-to-end
+# (`robust` profile, measured 24/24 BOSSbase covers).
 DELTA = 40.0
 
 
@@ -115,13 +113,16 @@ def capacity_bits(block_shape: tuple[int, int], bpp: int) -> int:
     return len(_select_pairs(block_shape, bpp))
 
 
-def embed(block: np.ndarray, bpp: int, bits: np.ndarray) -> np.ndarray:
+def embed(block: np.ndarray, bpp: int, bits: np.ndarray, delta: float | None = None) -> np.ndarray:
+    """`delta` overrides the module default - see `aide.profiles` for the
+    measured quality/robustness trade-off each profile picks."""
+    delta = DELTA if delta is None else float(delta)
     pairs = _select_pairs(block.shape, bpp)
     if len(bits) != len(pairs):
         raise ValueError(f"expected {len(pairs)} bits, got {len(bits)}")
     coeffs = _dct2(block)
     flat = coeffs.flatten()
-    flat = embed_bits_pairwise(flat, pairs, np.asarray(bits, dtype=np.uint8), DELTA)
+    flat = embed_bits_pairwise(flat, pairs, np.asarray(bits, dtype=np.uint8), delta)
     coeffs = flat.reshape(block.shape)
     out = _idct2(coeffs)
     return np.clip(np.round(out), 0, 255).astype(np.uint8)
@@ -133,3 +134,11 @@ def extract(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndar
     flat = coeffs.flatten()
     bits = extract_bits_pairwise(flat, pairs)
     return bits if num_bits is None else bits[:num_bits]
+
+
+def extract_soft(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndarray:
+    """Signed per-bit margins (sign = bit, magnitude = reliability) - see
+    `_common.pair_margins`."""
+    pairs = _select_pairs(block.shape, bpp)
+    margins = pair_margins(_dct2(block).flatten(), pairs)
+    return margins if num_bits is None else margins[:num_bits]

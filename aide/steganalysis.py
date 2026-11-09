@@ -37,15 +37,22 @@ Techniques implemented, in order of how much statistical power they have:
    low-weight vote in the combined score, matching how the literature
    treats it.
 
-Not implemented: Sample Pairs Analysis and RS (Regular-Singular) rate
-estimation, two more sophisticated blind detectors mentioned in the
-literature (and RS analysis by name in the report). Both were considered
-but deliberately left out rather than shipped with an unverified,
-possibly-subtly-wrong implementation - this project's whole approach is
-to measure and validate rather than assume, and getting either of these
-right from memory without a reference implementation to check against
-was assessed as too high a correctness risk for a detection tool. Real
-future work, not a placeholder.
+4. Structural, quantitative detectors (aide/quantitative.py): Sample
+   Pairs Analysis (primary) and RS analysis (corroborating) estimate the
+   LSB embedding *rate*, and - unlike chi-square, which needs sequential
+   embedding over most of the image - work for payload scattered at
+   random. Validated against ground truth rather than a reference
+   implementation (tests/test_quantitative.py). Calibrated on 200 clean
+   BOSSbase covers disjoint from the test set: SPA's 97.5th percentile
+   on clean images is a 0.061 rate; at that threshold the measured
+   held-out false-positive rate is 1/40 and randomly-scattered LSB
+   replacement at a 10% rate is detected in 40/40 covers (5%: ~11/40),
+   versus chi-square catching only near-full sequential embedding.
+
+What none of these see: transform-domain (DCT/DWT) embedding such as
+AIDE's own. That requires a *trained* detector - see aide/mlsteg.py, which
+is reported separately (`ml` in the report) because it is targeted at a
+specific embedding family rather than blind in the classical sense.
 """
 from __future__ import annotations
 
@@ -53,6 +60,8 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy.stats import chi2 as _chi2_dist
+
+from .quantitative import rs_analysis, spa
 
 MIN_EXPECTED_COUNT = 4  # standard practice: skip histogram bins too sparse to be meaningful
 
@@ -135,6 +144,10 @@ class SteganalysisReport:
     spatial_grid: list[list[float]]  # 2D grid of chi-square p per region, for a heatmap overlay
     suspicion_score: float       # combined [0, 1], higher = more likely to carry hidden data
     verdict: str                 # "clean", "suspicious", or "likely_steganographic"
+    spa_rate: float = 0.0        # Sample Pairs Analysis embedding-rate estimate
+    rs_rate: float = 0.0         # RS analysis embedding-rate estimate
+    estimated_payload_bytes: int = 0  # spa_rate * pixels / 8, if flagged
+    signals: dict | None = None  # per-signal sub-scores, for explainability
 
 
 # Verdict thresholds and per-signal weights are calibrated in
@@ -143,6 +156,26 @@ class SteganalysisReport:
 # theory alone.
 SUSPICIOUS_THRESHOLD = 0.35
 LIKELY_THRESHOLD = 0.65
+# Structural-detector calibration (see module docstring): SPA rate at the
+# 97.5th / ~99.5th percentile of 200 clean BOSSbase covers.
+SPA_SUSPICIOUS_RATE = 0.061
+SPA_LIKELY_RATE = 0.12
+RS_CORROBORATION_RATE = 0.061
+
+
+def _structural_score(spa_rate: float, rs_rate: float) -> float:
+    """Piecewise-linear map of the SPA rate onto the shared suspicion
+    scale, anchored at the calibrated thresholds (SPA_SUSPICIOUS_RATE ->
+    0.35, SPA_LIKELY_RATE -> 0.65). "Likely" additionally needs RS to
+    corroborate, so one estimator's outlier can't produce the strongest
+    verdict alone."""
+    if spa_rate < SPA_SUSPICIOUS_RATE:
+        score = 0.35 * spa_rate / SPA_SUSPICIOUS_RATE
+    else:
+        score = 0.35 + 0.30 * (spa_rate - SPA_SUSPICIOUS_RATE) / (SPA_LIKELY_RATE - SPA_SUSPICIOUS_RATE)
+    if rs_rate < RS_CORROBORATION_RATE:
+        score = min(score, LIKELY_THRESHOLD - 0.01)
+    return float(np.clip(score, 0.0, 1.0))
 
 
 def analyze(gray: np.ndarray, n_row_bands: int = 8) -> SteganalysisReport:
@@ -194,7 +227,11 @@ def analyze(gray: np.ndarray, n_row_bands: int = 8) -> SteganalysisReport:
     # a clean image over the "suspicious" line on its own.
     corr_signal = max(0.0, 1.0 - abs(corr) / 0.15)  # normalized: corr>=0.15 -> 0 suspicion
     balance_signal = max(0.0, 1.0 - balance / 0.05)  # normalized: balance>=0.05 -> 0 suspicion
-    suspicion = 0.8 * chi["p"] + 0.13 * corr_signal + 0.07 * balance_signal
+    classical = 0.8 * chi["p"] + 0.13 * corr_signal + 0.07 * balance_signal
+    spa_rate = spa(gray)["rate"]
+    rs_rate = rs_analysis(gray)["rate"]
+    structural = _structural_score(spa_rate, rs_rate)
+    suspicion = max(classical, structural)
 
     if suspicion >= LIKELY_THRESHOLD:
         verdict = "likely_steganographic"
@@ -209,4 +246,7 @@ def analyze(gray: np.ndarray, n_row_bands: int = 8) -> SteganalysisReport:
         chi_square_p=chi["p"], lsb_correlation=corr, lsb_bit_balance=balance,
         row_band_profile=row_band_profile, spatial_grid=grid.tolist(),
         suspicion_score=float(suspicion), verdict=verdict,
+        spa_rate=float(spa_rate), rs_rate=float(rs_rate),
+        estimated_payload_bytes=int(spa_rate * gray.size / 8) if verdict != "clean" else 0,
+        signals={"classical_chi_square": float(classical), "structural_spa_rs": structural},
     )

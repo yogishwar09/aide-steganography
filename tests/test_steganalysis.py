@@ -90,17 +90,15 @@ def test_detection_rate_increases_with_embedding_rate(real_sample_paths: list[Pa
 
 
 def test_aide_own_stego_images_evade_this_classical_detector(real_sample_paths, trained_model):
-    """The practical payoff: does AIDE's design actually deliver on the
-    report's own claim of negative detectability? Measured: yes, for this
-    classical chi-square detector - AIDE caps LSB at <1% of payload
-    (too little to shift the whole-image pair-equalization statistic) and
-    carries the rest in DCT/DWT coefficients, which this spatial-LSB-only
-    detector cannot see at all. This does NOT mean AIDE is undetectable in
-    general (see aide/steganalysis.py's docstring on SPA/RS analysis,
-    not implemented here, and DCT/DWT-domain steganalysis, not attempted
-    at all) - only that it evades *this specific, classical* tool, which
-    is exactly the kind of measured, scoped claim this project tries to
-    make rather than a blanket one.
+    """Does AIDE deliver the report's "negative detectability" claim?
+    Measured: yes, against the classical blind detectors - chi-square,
+    Sample Pairs Analysis and RS analysis all model spatial LSB
+    replacement, and AIDE's profiles put no payload in LSB at all (it lives
+    in DCT coefficient-pair relations these tests cannot see). This does
+    NOT mean AIDE is undetectable in general: the trained, targeted
+    detector in aide/mlsteg.py catches it almost perfectly (see
+    tests/test_mlsteg.py and README "Security analysis"). A scoped,
+    measured claim, not a blanket one.
     """
     secret = b"defence-shared-secret-2026"
     message = (

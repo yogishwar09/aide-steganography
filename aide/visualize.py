@@ -79,7 +79,7 @@ def diff_heatmap(cover_gray: np.ndarray, stego_gray: np.ndarray, amplify: float 
     rgb = np.zeros((*amp.shape, 3), dtype=np.uint8)
     rgb[..., 0] = amp                                   # red ramps up first
     rgb[..., 1] = np.clip(amp.astype(np.int16) - 80, 0, 255).astype(np.uint8)  # green kicks in mid-range -> amber
-    rgb[..., 2] = np.clip(amp.astype(np.int16) - 170, 0, 255).astype(np.uint8)  # blue only at the hottest pixels -> white
+    rgb[..., 2] = np.clip(amp.astype(np.int16) - 170, 0, 255).astype(np.uint8)  # blue: hottest -> white
     return Image.fromarray(rgb, mode="RGB")
 
 
@@ -99,7 +99,7 @@ def suspicion_heatmap_overlay(gray: np.ndarray, grid: np.ndarray, alpha: float =
     # blue (cool/low) -> amber -> red (hot/high) ramp, matching the app's warn/danger palette
     heat = np.zeros((gh, gw, 3), dtype=np.uint8)
     heat[..., 0] = np.clip(grid * 255, 0, 255).astype(np.uint8)              # red channel rises with p
-    heat[..., 1] = np.clip((1 - np.abs(grid - 0.5) * 2) * 140, 0, 255).astype(np.uint8)  # green peaks at mid (amber transition)
+    heat[..., 1] = np.clip((1 - np.abs(grid - 0.5) * 2) * 140, 0, 255).astype(np.uint8)  # green peaks mid (amber)
     heat[..., 2] = np.clip((1 - grid) * 255, 0, 255).astype(np.uint8)        # blue falls as p rises
 
     heat_img = Image.fromarray(heat, mode="RGB").resize((w, h), resample=Image.NEAREST).convert("RGBA")

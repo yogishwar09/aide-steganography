@@ -1,394 +1,424 @@
 <img src="webapp/static/logo-wordmark.svg" alt="AIDE — Adaptive Intelligent Dynamic Embedding" width="360">
 
-A working prototype of the AIDE steganography pipeline described in
-`AIDE_Technical_Report.pdf` (CD753PC Project Stage I, MGIT Hyderabad): a
-CPU-only image steganography system combining a learned block-level
-scoring policy, AES-256-GCM encryption, Reed-Solomon ECC with
-interleaving, adaptive LSB/DCT/DWT embedding, and tamper localization +
-recovery.
+A working implementation of the AIDE steganography framework described in
+`AIDE_Technical_Report.pdf` (CD753PC Project, MGIT Hyderabad): CPU-only
+adaptive image steganography that combines a learned block-level scoring
+policy, AES-256-GCM encryption, reliability-guided Reed-Solomon error
+correction with interleaving, transform-domain embedding, and tamper
+localization + recovery. It also includes a detection toolkit (classical,
+quantitative and machine-learning steganalysis).
 
-Built for the report's own defence and intelligence framing (section 7:
-secure military/satellite/drone communication, border and port media
-screening, cyber defence command centres) - which means covering **both
-sides**: secure covert communication (`aide embed`/`extract`, for
-authorized secure channels) *and* detecting someone else's covert
-communication (`aide detect`, blind steganalysis with no secret or
-sidecar - the "is this intercepted image smuggling hidden data" analyst
-question). See [Detection: blind
-steganalysis](#detection-blind-steganalysis-defence--intelligence) below.
+It covers **both sides** of the report's defence and intelligence use case
+(section 7):
 
-This is a **real, tested implementation**, not a restatement of the
-report. It's also **honest about where it falls short** of the report's
-two-semester, ALASKA2-scale targets — see [What doesn't work
-yet](#what-doesnt-work-yet) below before you cite any number from this
-project in a review.
+- **Operator:** secure covert communication through images that survive
+  compression, noise, filtering, rescaling and cropping on the way.
+- **Analyst:** screen intercepted media for hidden data, with no secret
+  and no sidecar.
+
+Every number below is **measured** by code in this repository (`aide
+benchmark`, the test suite) on real BOSSbase photographs. The README is
+explicit about where the project still falls short. See [Known
+limitations](#known-limitations-and-future-work) before citing a number.
+
+## What's new in 0.2
+
+| Area | AIDE 0.1 | AIDE 0.2 |
+|---|---|---|
+| Robustness | One fixed setting; Gaussian σ=20, salt & pepper and 0.5× scaling **failed outright** | **Four measured profiles**. `robust` meets report O4 end-to-end: σ=20 noise, JPEG Q30–50, salt & pepper, median filter and 10% crop all at **100%** |
+| Error correction | Fixed RS(255,223); short messages got no interleaving benefit | Configurable parity, **shortened codewords** for short messages, and **GMD reliability-guided decoding** |
+| Sidecar | Mandatory JSON side file | Optional: **blind mode** embeds a self-describing, keyed payload that needs only the image and the secret |
+| Key derivation | Single SHA-256 | **scrypt** (memory-hard; resists offline brute force of weak passphrases). 0.1 sidecars still decode |
+| Detection | Chi-square only (catches only sequential full-image LSB) | Adds **Sample Pairs Analysis + RS analysis** (validated against ground truth; estimate the payload size) and a **trained ML steganalyser** with a cover-source-mismatch guard |
+| Decision engine | Decision tree | Tree **or tiny MLP** (report phase 3); 3× faster feature extraction (numerically identical) |
+| Tooling | CLI + local demo UI | `capacity`, `benchmark`, `train-detector`, folder screening to CSV, **versioned REST API + OpenAPI**, API-key auth, Docker, CI, lint |
+| Tests | 85 | **146** |
+
+Same 30 BOSSbase covers and 156-byte message, AIDE 0.1 parameters vs the
+0.2 default (`balanced`) profile:
+
+| Attack | 0.1 | 0.2 `balanced` | 0.2 `robust` |
+|---|---:|---:|---:|
+| JPEG Q50 / Q30 | 100% / 100% | 100% / 100% | 100% / 100% |
+| Gaussian noise σ=20 (O4) | 0% | 0% | **100%** |
+| Salt & pepper 1% | 0% | 0% | **100%** |
+| Median filter 3×3 | 69% | **100%** | **100%** |
+| Rescale 0.5× | 0% | **92%** | **96%** |
+| Splice 5% | 85% | **100%** | **100%** |
+| Crop 10% | 50% | **88%** | **100%** |
+| Mean PSNR / SSIM | 39.7 dB / 0.975 | 40.1 dB / 0.967 | 35.0 dB / 0.912 |
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e .          # installs the `aide` console script
+pip install -e ".[dev,web,data,report]"   # or: pip install -r requirements.txt && pip install -e .
 ```
 
-Fetch training/demo images (pulls a subset of the real BOSSbase 1.01
-dataset via HTTP range requests — no need to download the full 1.67 GB
-archive; falls back to scikit-image's bundled sample photos if the host is
-unreachable):
+Fetch real cover images: a subset of BOSSbase 1.01, pulled with HTTP range
+requests. It falls back to scikit-image samples if the host is unreachable.
 
 ```bash
 python scripts/fetch_dataset.py --count 300
 ```
 
-Train the AIDE decision engine on the fetched images:
+Train the decision engine and the steganalyser:
 
 ```bash
-aide train --images data/samples --out data/models
+aide train --images data/samples --out data/models                 # decision tree (default)
+aide train --images data/samples --out data/models --classifier mlp # or the tiny MLP
+aide train-detector --images data/samples --out data/models         # ML steganalyser (~1-3 min)
 ```
 
-Run the full walkthrough (embed → attack → recover, with a measured
-metrics table):
+`make install data train detector test bench web` wraps these steps.
+
+## Quick start (CLI)
 
 ```bash
-python scripts/demo.py
+# Operator
+aide profiles                                   # list robustness profiles
+aide capacity cover.png                         # exact max message size per profile and mode
+aide embed cover.png stego.png --message "grid 47N 12E" --secret-file key.txt --profile robust
+aide embed cover.png stego.png --message "grid 47N 12E" --secret "pw" --mode blind   # no sidecar
+aide attack stego.png attacked.png --type gaussian_noise --params '{"sigma": 20}'
+aide extract attacked.png --secret-file key.txt  # auto: uses <image>.aide.json if present, else blind
+aide evaluate cover.png --secret "pw" --profile robust                               # every attack, one image
+
+# Analyst
+aide detect suspect.jpg                         # chi-square + SPA + RS + ML, one verdict
+aide detect /media/intercepted --recursive --csv screening.csv   # batch screening
+
+# Engineering
+aide benchmark --num-images 30 --out reports/benchmark            # multi-image recovery benchmark
+aide benchmark --inference --num-images 5                         # report O1/O7 latency and footprint
+python scripts/demo.py --profile robust --mode blind              # narrated walkthrough
 ```
 
-Or launch the local web console (a clickable UI over the same code, with
-both an Operator/secure-comms mode and an Analyst/threat-detection mode
-— see [Web console](#web-console) below):
+Use `--secret-file` to keep the secret out of shell history. Exit codes are
+script-friendly: `extract` returns 1 on failure, and `detect` returns 1 if
+anything is flagged.
+
+## Robustness profiles
+
+A profile is a named, measured operating point on the quality ↔
+robustness ↔ capacity trade-off (`aide/profiles.py`). The profile used is
+recorded in the sidecar or the blind header, so the receiver never has to
+guess it.
+
+| Profile | DCT δ | RS parity (per 255) | Mean PSNR | Mean SSIM | Built for |
+|---|---:|---:|---:|---:|---|
+| `quality` | 20 | 64 | **43.4 dB** | **0.984** | Lossless channels and JPEG ≥ Q50; meets the report's >42 dB / >0.98 targets |
+| `balanced` *(default)* | 36 | 64 | 40.1 dB | 0.967 | JPEG ≥ Q30, noise σ ≤ 10, filtering, rescaling, splicing |
+| `robust` | 64 | 104 | 35.0 dB | 0.912 | **Report O4**: σ=20 noise, salt & pepper, 10% crop |
+| `fortress` | 80 | 176 | 30.5 dB | 0.803 | Hostile channels; visible cost; short messages |
+
+Full measured matrix (`reports/benchmark/benchmark.md`, 30 BOSSbase
+covers, 156-byte message, bit-exact AES-GCM-verified recovery):
+
+| Scenario | quality | balanced | robust | fortress |
+|---|---:|---:|---:|---:|
+| none | 100% | 100% | 100% | 100% |
+| JPEG Q90 / Q70 / Q50 | 100% | 100% | 100% | 100% |
+| JPEG Q30 | 20% | 100% | 100% | 100% |
+| Gaussian noise σ=5 | 100% | 100% | 100% | 100% |
+| Gaussian noise σ=10 | 0% | 100% | 100% | 100% |
+| Gaussian noise σ=20 (O4) | 0% | 0% | 100% | 100% |
+| Salt & pepper 1% | 0% | 0% | 100% | 100% |
+| Median 3×3 | 52% | 100% | 100% | 100% |
+| Gaussian blur | 100% | 100% | 100% | 100% |
+| Rescale 0.75× | 100% | 100% | 100% | 100% |
+| Rescale 0.5× | 40% | 92% | 96% | 100% |
+| Splice 2% / 5% | 100% | 100% | 100% | 100% |
+| Crop 10% | 84% | 88% | 100% | 100% |
+| Covers with capacity for the message | 25/30 | 25/30 | 24/30 | 20/30 |
+
+Robustness depends on the message length relative to capacity. Each
+profile prefers its most robust layout (few, low-frequency DCT pairs per
+block) and relaxes it only when a long message would not fit otherwise. So
+a message near a cover's capacity is less robust than these 156-byte runs.
+`aide capacity` reports both limits.
+
+## Modes: sidecar vs blind
+
+| | Sidecar (default) | Blind |
+|---|---|---|
+| Receiver needs | Stego image + `<image>.aide.json` + secret | Stego image + secret |
+| Block layout | AIDE-selected blocks, ranked by S(b) | Keyed pseudo-random permutation of all blocks (SHA-256 of the secret) |
+| Adaptivity | Where / how much / which method per block | Per-block embedding *strength* from S(b); saturation-aware |
+| Tamper map | Per-block SHA-256 + histogram → spatial map, RS erasures | None; damage is absorbed by reliability-guided decoding |
+| Capacity (512×512, `balanced`) | ~870 B | ~650 B (fixed 960-bit header) |
+
+**How blind mode works** (`aide/blind.py`). A 14-byte header holds the
+magic, version, profile id, an 8-byte random salt and the ciphertext
+length. It is RS-protected and stored three times with soft (margin-summed)
+combining, followed by the RS-encoded, interleaved ciphertext.
+
+Extraction only reads the *sign* of each coefficient-pair difference, so
+the receiver needs no per-block map. A wrong secret finds no header at all
+("no AIDE blind header found"), and without the secret an adversary cannot
+even locate the payload blocks.
+
+Measured on 16 covers: `robust` blind survives JPEG Q30, σ=20 noise, median
+filtering, 5% splicing and 10% cropping at 15–16/16, and `fortress` blind
+survives 0.5× rescaling at 16/16. PSNR is about 3–4 dB below sidecar mode
+at the same profile, because of the header and because every block carries
+payload.
+
+## Web console and REST API
 
 ```bash
-python webapp/app.py
+python webapp/app.py                        # development: http://127.0.0.1:5050
+gunicorn -w 2 -b 0.0.0.0:5050 webapp.app:app  # production
+docker build -t aide . && docker run -p 5050:5050 -v "$PWD/data:/app/data" aide
 ```
 
-then open the URL it prints (defaults to http://127.0.0.1:5050).
+- **Operator:** choose a profile and mode and see live capacity for the
+  chosen cover. Then embed, simulate an attack, inspect the tamper/erasure
+  map (sidecar mode) and recover. The recovery status reports how many
+  bytes ECC repaired and whether GMD decoding rescued any codewords.
+  Embedding-map and difference-heatmap views are included.
+- **Analyst:** run a single-image assessment across all three detector
+  families (verdict, SPA/RS payload estimate, ML probability, suspicion
+  heatmap), or batch-screen up to 50 images into a ranked table with CSV
+  export.
+- **Model Insights:** shows the learned S(b) weights, thresholds and label
+  distribution, the **robustness benchmark matrix**, and the **ML
+  steganalyser's held-out evaluation**.
 
-Run the test suite:
+Every endpoint is served at `/api/<name>` and at the versioned
+`/api/v1/<name>`. The contract is in `/api/v1/openapi.json`, and
+`/healthz` is the health check.
 
-```bash
-pytest tests/ -q
-```
-
-## CLI
-
-```bash
-aide embed  cover.png stego.png --message "secret text" --secret "shared-secret"
-aide extract stego.png --secret "shared-secret"
-aide attack stego.png attacked.png --type compression --params '{"quality": 50}'
-aide extract attacked.png --secret "shared-secret" --sidecar stego.png.aide.json
-aide evaluate cover.png --secret "shared-secret"   # embed + every attack + metrics
-aide detect some_intercepted_image.jpg             # blind steganalysis, no secret/sidecar needed
-aide train --images data/samples --out data/models
-```
-
-`embed` writes two files: the stego image, and a `<stego>.aide.json`
-sidecar carrying the per-block embedding map, tamper-reference hashes, RS
-parameters, and the AES-GCM nonce. See [Side-channel
-metadata](#side-channel-metadata-the-sidecar-file) for why this exists.
-
-## Web console
-
-```bash
-python webapp/app.py
-```
-
-A local, single-page web UI (`webapp/app.py` + `webapp/templates/index.html`)
-over the exact same `aide` package the CLI uses - every button is a thin
-HTTP wrapper around an `aide.pipeline`/`aide.steganalysis` call, no
-independent logic of its own. Two modes, matching this project's two
-defence/intelligence sides:
-
-- **Operator — Secure Communication**: upload a cover image, type a
-  message and shared secret, embed, optionally simulate an interception
-  attack, and recover - all in the browser, with PSNR/SSIM/method-mix
-  metrics and the same attack list `aide attack` exposes.
-- **Analyst — Threat Detection**: upload any image and run blind
-  steganalysis (`aide detect`) - verdict, suspicion score, per-signal
-  breakdown, and the row-band diagnostic plot, with the same measured
-  false-positive/detection-rate story documented above.
-- **Model Insights**: the trained decision engine's actual learned
-  parameters - training-set size, validation accuracy, the S(b) scoring
-  weights as a bar chart, the confidence-gate/method thresholds, and the
-  training label distribution. Makes the report's "explainable, not a
-  black box" claim concrete instead of asserted - see `aide/model.py`.
-
-### Visual analysis (`aide/visualize.py`)
-
-Three views turn the decision engine's choices and the attack's actual
-effect into images instead of only numbers, each rendered on demand from
-the Operator tab:
-
-- **Embedding map** - colors every block the engine actually used by
-  which method (LSB/DCT/DWT) embedded into it. The most direct visual
-  evidence of the report's central novelty: a learned, per-block,
-  multi-method policy, not a fixed rule - the method assignment visibly
-  tracks the cover image's texture and edges.
-- **Difference heatmap** - the real, amplified `|cover - stego|` pixel
-  difference. Honest about the fact that pixels did change (steganography
-  isn't magic), rather than only citing a PSNR number.
-- **Tamper/erasure map** (after an attack) - which blocks the receiver
-  actually trusts: red for erasure (fed to Reed-Solomon as a known-bad
-  byte range), amber for hash-mismatch-but-corrected-by-blind-ECC,
-  untouched for trusted. The concrete payoff of `aide.tamper`.
-
-Stateless by design: the Flask backend holds no session - the browser
-keeps the stego image and sidecar (as base64/JSON) between steps and
-POSTs back whatever the next endpoint needs, and the server only ever
-touches disk via short-lived temp files (`aide.pipeline`'s functions need
-a file path for the image-bound key derivation - see
-`aide/crypto.py`) that are deleted after each request. Local only (Flask's
-built-in dev server, `debug=True`) - not hardened for exposure to a
-network; see the warning it prints on startup.
-
-Tested the same way as everything else: `tests/test_webapp.py` drives
-the Flask app via its test client (no live server needed) through the
-full embed → attack → recover workflow, both detection cases, and all
-three visualization endpoints; `tests/test_visualize.py` unit-tests the
-overlay/heatmap generation directly.
+Set `AIDE_API_KEY` to require an `X-API-Key` header on API calls. Responses
+carry `X-Request-ID`, a CSP and anti-framing headers, and every error is
+returned as JSON (`{"error": ...}`). The server is stateless: the browser
+holds the stego image and sidecar between steps, and temp files are
+deleted after each request.
 
 ## Architecture
 
 ```
 aide/
-  features.py     block partitioning (8x8/16x16, adaptive) + per-block
-                   texture (LBP+GLCM), Shannon entropy, variance, edge
-                   strength (Sobel+Canny)
+  features.py      block partitioning + texture (LBP+GLCM), entropy, variance, edge
+                   (GLCM/entropy/variance vectorised across blocks, identical results)
   scoring.py       S(b) = alpha*T + beta*E + gamma*V + delta*D
-  model.py         AIDEModel: learned weights/thresholds + trained
-                   sklearn classifier/regressor
-  train.py         empirical, measurement-based training (see below)
-  crypto.py        AES-256-GCM, key = SHA256(image_hash + shared_secret)
-  ecc.py           Reed-Solomon RS(255,223) + block interleaving, with
-                   erasure support
-  embedding/
-    lsb.py         variable bits-per-pixel LSB substitution
-    dct.py         mid-frequency DCT coefficient-pair QIM
-    dwt.py         2-level Haar DWT, coefficient-pair QIM in the coarse
-                   approximation sub-band
-  tamper.py        per-block SHA-256 + histogram chi-square -> spatial
-                   tamper mask + confidence
-  attacks.py       6 attack categories, 8 concrete simulations
+  model.py         AIDEModel: learned weights/thresholds + tree or MLP classifier/regressor
+  train.py         measurement-based training (see below)
+  profiles.py      robustness profiles (deltas, RS parity, budgets, bpp cap)
+  crypto.py        AES-256-GCM; scrypt (default) or SHA-256 KDF over image hash/salt + secret
+  ecc.py           RS with configurable parity, shortened-codeword planning, interleaving,
+                   GMD reliability-guided decoding
+  embedding/       lsb.py, dct.py (mid-frequency pair QIM), dwt.py (2-level Haar cA2 pair QIM)
+                   each with embed / extract / extract_soft (signed margins)
+  pipeline.py      sidecar-mode embed()/recover(), capacity_report()
+  blind.py         blind-mode embed()/recover(): keyed layout, self-describing header
+  tamper.py        per-block SHA-256 + histogram chi-square -> tamper mask + confidence
+  attacks.py       6 attack categories, 8 simulations
   metrics.py       PSNR, SSIM, BER, timing/memory
-  pipeline.py      embed()/recover() orchestration + sidecar I/O
-  steganalysis.py  blind detection (chi-square PoV, LSB correlation) -
-                   no secret/sidecar needed; the counter-intelligence side
+  steganalysis.py  blind detection: chi-square PoV + SPA/RS (verdict), LSB signals, heatmap grid
+  quantitative.py  RS analysis and Sample Pairs Analysis embedding-rate estimators
+  mlsteg.py        SPAM + DCT pair-gap features, gradient-boosted detector, OOD guard
+  benchmark.py     parallel multi-image benchmark + inference-speed measurement
+  visualize.py     embedding map, diff heatmap, tamper overlay, suspicion heatmap
   cli.py           `aide` command-line entry point
+webapp/            Flask console + REST API (gunicorn-ready)
+reports/benchmark/ the committed benchmark run quoted in this README
 ```
 
-### The AIDE decision engine: trained on real measurements, not assumptions
+### The decision engine: trained on real measurements
 
-The report specifies a scoring formula with weights "learned during
-training" but doesn't say what the training labels *are*. Two choices
-were made here, deliberately avoiding circularity:
+The report says the scoring weights are "learned during training" but does
+not say what the labels are. To avoid circularity:
 
-1. **Method selection** (LSB/DCT/DWT/skip): the report's own rule
-   (`texture < T_low -> LSB`, `edge > E_high -> DWT`, else `DCT`) generates
-   the ground-truth label, with `T_low`/`E_high` set from the 33rd/67th
-   percentile of texture/edge observed across the training images (so
-   classes come out roughly balanced rather than hand-tuned). A
-   `DecisionTreeClassifier` is then trained to reproduce and smooth that
-   rule from all four features — this is the "AI refines the score" step.
-   Its normalized `feature_importances_` become the explainable
-   `(alpha, beta, gamma, delta)` weights.
-2. **Payload (bpp) and the confidence gate**: for each block, under its
-   assigned method, we actually embed random bits at bpp=4,3,2,1 and
-   measure the real resulting block PSNR, keeping the highest bpp that
-   stays at/above a target. If even bpp=1 is unsafe, the block is labelled
-   `SKIP`. A `DecisionTreeRegressor` learns to predict this from the
-   features. **This is measured, not assumed.**
+1. **Method labels** come from the report's own rule (`texture < T_low →
+   LSB`, `edge > E_high → DWT`, else DCT). The thresholds are the 33rd and
+   67th percentiles over the training blocks, so the classes are roughly
+   balanced. A decision tree (or MLP) learns to reproduce and smooth that
+   rule from all four features. Its feature importances (permutation
+   importances for the MLP) become the explainable (α, β, γ, δ).
+2. **Payload (bpp) and SKIP labels** are measured. Random bits are actually
+   embedded at bpp 4/3/2/1 and the block PSNR is measured. The label is the
+   highest safe bpp, or SKIP if none is safe.
 
-Run `aide train` yourself to see this in action — it prints train/val
-accuracy and the learned weights.
+Trained on 334 BOSSbase images (342k blocks): **87.7%** validation accuracy
+(tree). The MLP reaches 85.4% on a 20k-block subsample.
 
-### Side-channel metadata: the sidecar file
+### How the robustness gains were obtained (all measured)
 
-Recovery needs the per-block embedding map, reference hashes, RS
-parameters, and the GCM nonce. The report says these are "transmitted
-alongside" the stego image — this prototype implements that literally as
-a JSON sidecar file, assumed to travel over a channel separate from (and
-more reliable than) the possibly-attacked image itself. A fully
-self-describing steganographic header (embedding this metadata *in* the
-image too) is real future work, not built here — it doesn't change which
-novelty is being demonstrated.
+Each change was adopted only after `aide benchmark` showed it helped:
 
-### Color images: Y-plane only
+- **Route the payload away from LSB and DWT.** On ~2% of the payload bits
+  they caused ~40% of the bit errors under median filtering (flip rates:
+  LSB 29–54%, DWT 8–13%, DCT ~0.5%). Zeroing their budgets raised 10%-crop
+  recovery from 52% to 88% and median-filter recovery from 80% to 88%, at
+  *better* PSNR. The engine still decides where, how much, and which method
+  per block. Blocks it assigns to LSB/DWT are simply left untouched (pass
+  `fragile_method_budgets` to re-enable them).
+- **Prefer a low-frequency layout.** Capping blocks at 8 DCT pairs (the
+  lowest robust mid-band pairs) took balanced-profile 0.5× rescaling from
+  0% to 92% and median filtering from 88% to 100%, at the same PSNR.
+- **Shortened RS codewords.** A 156-byte message used to occupy one
+  255-byte codeword, so interleaving had nothing to spread damage across.
+  `ecc.plan` now splits short payloads into ≥4 shortened codewords at the
+  same parity ratio. Shortened RS codes are standard practice (DVB, QR
+  codes).
+- **GMD decoding (Forney, 1966).** Every extracted bit carries a soft
+  margin |cᵢ − cⱼ| / δ. Bytes that an attack pushed near the decision
+  boundary are erased first, so RS can fix up to 2t errors instead of t
+  when the low-reliability guesses are right. Candidates for every erasure
+  count are compared by reliability-weighted distance. The original
+  first-success rule was measured to *mis-correct* on short codewords (all
+  13 failures in a 20-trial test were wrong-but-valid codewords).
+  Minimum-distance selection reduced that (recovery went from 7/20 to
+  9/20), and saturation awareness (next item) closed the rest.
+  A wrong codeword can never produce wrong plaintext, because the AES-GCM
+  tag rejects it.
+- **Saturation awareness (blind mode).** Clipped (pure black/white) blocks
+  lose margin to rounding. The sender boosts their strength and the
+  receiver down-weights them. On a cover with 34% saturated pixels, σ=20
+  recovery went from 9/20 to 20/20.
 
-The whole pipeline (features, AIDE decisions, embedding, tamper
-localization, attack simulation) operates on one 2D plane. For a color
-cover, `pipeline.load_image` converts to YCbCr and that plane is Y
-(luma); Cb/Cr are carried through untouched and recombined with
-`compose_image`/`EmbedResult.compose()` on save. This is standard
-practice (the eye is far less sensitive to chroma changes at high spatial
-frequency), and keeps the embedding pipeline single-channel rather than
-3x more complex. It does mean attack simulation isn't truly
-"color-aware" - e.g. it doesn't model chroma subsampling the way a real
-JPEG encoder's color-space handling would - which is a reasonable,
-documented scope boundary rather than an attempt at that separate
-problem.
+### Design notes carried over from 0.1
 
-### Why bit-level, not byte-level, capacity accounting
+- **Sidecar.** Recovery in sidecar mode needs the per-block embedding map,
+  reference hashes, RS parameters and the GCM nonce. These are "transmitted
+  alongside" (report), implemented as `<stego>.aide.json`. Its version is
+  `aide-0.2`; `aide-0.1` files still decode with their original parameters.
+- **Color covers.** Embedding uses the Y (luma) plane; Cb/Cr pass through
+  untouched. Attack simulation is luma-only, so chroma subsampling in real
+  JPEG encoders is not modelled.
+- **Bit-level capacity accounting.** DCT/DWT blocks carry a handful of bits
+  each, so the payload is a flat bitstream rather than whole bytes per
+  block.
 
-DCT/DWT blocks often carry only a handful of *bits* (a 16x16 DWT block at
-bpp=1 can be as low as 4 bits). Early versions of this pipeline rounded
-each block down to whole bytes, which was measured to waste the large
-majority of DCT/DWT capacity and push the payload back onto
-high-capacity-but-fragile LSB blocks. `pipeline.py` tracks a flat
-bitstream instead, so every bit of every method's real capacity gets used.
+## Detection: steganalysis toolkit
 
-## What actually works (measured)
+`aide detect` answers the analyst's question: given an image with no
+secret, no sidecar and no knowledge of how it might have been modified,
+does it carry hidden data? Three detector families feed one verdict:
 
-Run `python scripts/demo.py` to reproduce these numbers yourself — they
-vary by cover image and message length, but this is representative:
+1. **Chi-square pairs-of-values** (Westfeld & Pfitzmann 2001). Catches
+   sequential, near-full-image LSB embedding.
+2. **Sample Pairs Analysis** (Dumitrescu et al. 2003) as the primary signal
+   and **RS analysis** (Fridrich et al. 2001, named in the report) as
+   corroboration (`aide/quantitative.py`). These *estimate the embedding
+   rate*, so the report includes an estimated payload in bytes. No
+   reference implementation was available, so both are **validated against
+   ground truth**: known random-LSB rates were embedded into real covers.
 
-- **Exact recovery with no attack**: 100%, PSNR ~33-51 dB depending on how
-  much of the image is needed for the message (short messages on
-  higher-capacity images comfortably clear the report's 42 dB target;
-  longer messages that need more DCT/DWT blocks for robustness trade some
-  PSNR for it — a real, measured trade-off, not a bug).
-- **JPEG compression, Q=30-70**: recovers reliably. This matches and
-  exceeds report objective O4's explicit target (Q=50).
-- **Localized splicing/tampering** (small-to-moderate region
-  replacement): recovers reliably *when* the message spans enough RS
-  codewords for interleaving to spread the damage thin — see the
-  single-codeword caveat below. Tamper localization correctly
-  distinguishes a genuinely replaced block (100% detection in testing)
-  from mild diffuse noise (kept below the erasure budget so it doesn't
-  cannibalize Reed-Solomon's blind-correction capacity).
-- **Mild-to-moderate Gaussian noise** (sigma~10) and **Gaussian
-  smoothing filters**: recover reliably.
-- **Median filtering and mild (0.75x) geometric scaling**: DWT was
-  revised mid-project to embed in the coarse 2-level wavelet
-  approximation sub-band instead of the detail sub-bands, and DCT's
-  coefficient-pair selection was capped to a frequency band measured
-  robust to both attacks; LSB and DWT's payload shares were both capped
-  small (`pipeline.DEFAULT_FRAGILE_METHOD_BUDGETS`) since even a small
-  share of either was measured to tip an otherwise-passing recovery into
-  failing. Recovers reliably now, matching median-filter and mild-scaling
-  resilience the report doesn't even explicitly call out as difficult.
-- **Cryptographic integrity**: wrong shared secret, or any tampering with
-  the ciphertext/tag, is always correctly rejected (`AideAuthenticationError`).
-- **Color (RGB) cover images**: converted to YCbCr and embedded in the Y
-  (luma) plane only, with Cb/Cr chroma carried through untouched and
-  recombined on save - full color fidelity outside the embedded plane,
-  survives a save/reload round trip through a real color PNG and a
-  compression attack applied to the color image. `aide embed`/`extract`/
-  `attack` all auto-detect grayscale vs. color and handle both.
+   | True rate | 0 | 0.10 | 0.25 | 0.50 | 0.75 | 1.0 |
+   |---|---:|---:|---:|---:|---:|---:|
+   | SPA mean estimate | 0.03 | 0.12 | 0.27 | 0.51 | 0.76 | 0.98 |
+   | RS mean estimate | 0.04 | 0.14 | 0.28 | 0.53 | 0.76 | unstable (known RS degeneracy as p→1) |
 
-## Detection: blind steganalysis (defence & intelligence)
+   Thresholds are calibrated on 200 clean covers that are disjoint from the
+   test set (SPA rate > 6.1% is the clean 97.5th percentile). Held-out
+   results: **1/40 false positives**, and **randomly scattered** LSB at a
+   10% rate is detected in **40/40** covers. Chi-square alone catches only
+   sequential embedding.
+3. **Trained ML steganalyser** (`aide/mlsteg.py`, `aide train-detector`).
+   It uses 98-dim SPAM features (Pevný et al. 2010) plus 28 targeted DCT
+   coefficient-pair gap features, with a gradient-boosted classifier
+   trained on clean vs AIDE-stego covers. This is the only family that can
+   see transform-domain embedding. The operating point is a 5% FPR on
+   held-out clean covers.
+   - **Cover-source-mismatch guard.** A classifier trained on BOSSbase
+     photographs scored a synthetic, clean test pattern at P(stego) = 0.99.
+     An IsolationForest fitted on the training features now flags
+     out-of-distribution inputs. For those, the ML verdict is capped at
+     "suspicious" and the output says why. 98.7% of held-out real covers
+     count as in-distribution.
 
-`aide detect <image>` answers a genuinely different question than
-`extract`: given an image with **no known secret, no sidecar, and no
-assumption about whether or how it was modified**, does it look like it's
-carrying hidden data? This is the report's own border/port screening and
-cyber-defence-command-centre use case (section 7) - a counter-
-intelligence analyst's question, not a covert-communication operator's.
+## Security analysis
 
-**How it works** (`aide/steganalysis.py`): the classical chi-square
-pairs-of-values attack (Westfeld & Pfitzmann, 2001) as the primary,
-statistically well-powered signal, corroborated by two weaker signals
-(LSB/next-bit-plane correlation, LSB bit-balance). Combined into a
-suspicion score and a `clean` / `suspicious` / `likely_steganographic`
-verdict.
+**Confidentiality and integrity.** AES-256-GCM. The key is
+scrypt(secret, image hash or salt) with N=2¹⁴, r=8, p=1, which adds
+roughly 16 MB and tens of milliseconds per guess for an offline attacker.
+The GCM tag is verified before anything is returned, so recovery yields the
+exact message or an error, never a corrupted message. Blind mode derives
+its nonce from a fresh random salt that is also mixed into the key, so
+every (key, nonce) pair is single-use.
 
-**Measured, not assumed** (`tests/test_steganalysis.py`):
-- **False-positive rate on real, clean images: 1/40 (2.5%)** - consistent
-  with the statistical test's own significance level, not a systemic
-  bias. An earlier version of the scoring, which folded a per-row-band
-  breakdown into the verdict to catch partially-embedded images, was
-  caught by testing to inflate this to **16/20 false positives** (taking
-  the max of 8 correlated statistical tests without a multiple-testing
-  correction is itself unsound) and was reverted before shipping - a
-  detector that cries wolf on most clean images is worse than none for a
-  security tool. That row-band breakdown is still surfaced in the output
-  as a diagnostic "where might it be" plot, explicitly labeled as not
-  factoring into the verdict.
-- **Naive, full-image sequential LSB embedding (the classic, still
-  common, unsophisticated case): reliably detected** - 100% at full
-  embedding rate, degrading honestly at lower rates (a known, documented
-  limitation of the classical whole-image test, not hidden).
-- **AIDE's own adaptive stego images evade this detector entirely
-  (0/15 flagged)** - a real, verified answer to the report's own
-  "Detectability (RS analysis): Negative" target claim, for this specific
-  classical tool. AIDE's LSB payload share is capped under 1% (too little
-  to shift the whole-image pair-equalization statistic this test looks
-  for) and the rest lives in DCT/DWT coefficients this spatial-LSB-only
-  detector cannot see at all. This is a scoped, honest claim, not a
-  blanket one: it says nothing about detectability by more sophisticated
-  tools (Sample Pairs Analysis, RS rate estimation, transform-domain
-  steganalysis, or a trained ML classifier) - see "What doesn't work yet"
-  below for why those weren't attempted.
+**Undetectability: an honest finding.** AIDE stego images **evade the
+classical blind detectors**: chi-square, SPA and RS all score clean (0/15
+flagged in `tests/test_steganalysis.py`). That is the report's "negative
+detectability" claim, and it holds for those tools. **It does not hold
+against a detector that knows the embedding family.** On 100 held-out
+covers, the targeted ML steganalyser detects every AIDE variant (sidecar
+quality, balanced and robust; blind balanced and robust) at **100%, with
+AUC 0.998–1.000 and a 1% false-positive rate**.
 
-## What doesn't work yet
+The cause is structural. Coefficient-pair QIM forces |cᵢ − cⱼ| ≥ δ, which
+leaves a deficit of small pair differences that natural images do not
+have. The tool to measure it ships with the project, so this is stated as a
+known property rather than hidden. See future work.
 
-Documented rather than papered over, per this project's own "measure,
-don't assume" rule:
+**Threat model.** Without the secret, an adversary cannot decrypt, forge a
+message (GCM), or, in blind mode, locate the payload (keyed layout). An
+adversary *can* destroy the payload: any attack beyond the chosen
+profile's tolerance, or geometric attacks (rotation, true cropping) that
+desynchronize the block grid. They can also detect it statistically, as
+described above.
 
-- **LSB is fragile to everything** (~45-55% bit-error rate under every
-  attack tried, including a plain re-save). This is real and expected —
-  LSB depends on exact pixel values. It's capped at a token 0.5% of the
-  payload (`pipeline.DEFAULT_FRAGILE_METHOD_BUDGETS`) specifically so it
-  doesn't dominate a codeword's error budget while staying visible in the
-  embedding map; earlier versions of this pipeline let it reach >50% of
-  payload bits and silently broke compression resilience as a result.
-- **Median filtering is boundary-sensitive, not fully guaranteed.** After
-  the fixes above, a representative median-filter recovery test now sits
-  right at Reed-Solomon's correction threshold (t=16 errors per codeword)
-  instead of far past it - it passes on most runs but can still fail
-  depending on tiny floating-point rounding differences in scipy's DCT
-  (`tests/test_attacks_recovery.py::test_median_filter_recovers` is
-  marked `xfail(strict=False)` for exactly this reason: usually an
-  unexpected pass, occasionally a real failure). A safety margin in the
-  capacity allocator, not yet implemented, would close this gap for good.
-- **Aggressive (0.5x) geometric scaling still fails outright** - and per
-  the report's own text, this is expected: "Scaling attacks are the most
-  damaging" (report section 2.3). Measured per-codeword error counts are
-  well past the correction budget even with DCT carrying nearly the
-  entire payload, unlike median filtering's boundary case above.
-- **Gaussian noise at sigma=20 (report O4's explicit target) and salt &
-  pepper noise both fail at the default DCT delta** - and this one *is* a
-  quick, deliberate dial rather than an unsolved problem: measured
-  per-codeword error counts at sigma=20 (~100-120 out of 255 bytes) drop
-  to full recoverability once `DELTA` is raised from 40 to ~150, at a
-  real, measured image-quality cost (block PSNR ~30dB -> ~20dB - see the
-  table in `aide/embedding/dct.py`). This project ships the smaller
-  default because 40 already fully covers JPEG compression and median
-  filtering without paying that quality cost for a noise level nothing
-  else in the pipeline (LSB, DWT) is tuned to survive either - raising it
-  to actually hit O4's target end-to-end would need matching increases
-  across all three methods, which is future work, not a one-line change.
-- Heavier attacks still fail regardless of delta: >~2-3% cropping/
-  splicing relative to how many RS codewords the message spans exceeds
-  the erasure budget outright (detection still works - see
-  `test_heavy_cropping_may_exceed_erasure_budget_but_is_detected`).
-- **Single-codeword messages get zero interleaving benefit.** RS(255,223)
-  always produces at least one full 255-byte codeword no matter how short
-  the plaintext is, and interleaving only redistributes bytes *within*
-  existing codewords — with one codeword, every byte already belongs to
-  it regardless of where it's embedded spatially. Use a message long
-  enough to span multiple codewords (roughly 200+ plaintext bytes) to see
-  the interleaving defense actually do something; `aide evaluate` and
-  `scripts/demo.py` default to one for this reason.
-- **Trained on 334 real BOSSbase images (~342,000 blocks)**, not the
-  report's 80,000+-image ALASKA2 corpus. Training is fast and scales
-  roughly linearly (measured: 20s at 50,000 blocks -> 0.875 validation
-  accuracy, 2.5 minutes at the full ~342k -> 0.877) - `aide train
-  --images <dir> --max-images N --max-blocks N` accepts any local image
-  folder, so fetching more BOSSbase images (or pointing at ALASKA2/your
-  own images) is a data problem now, not a code change.
-- **`aide detect`'s blind steganalysis only catches naive, spatial-LSB
-  steganography.** Sample Pairs Analysis and RS (Regular-Singular) rate
-  estimation - two more sophisticated blind detectors from the
-  literature, RS analysis by name in the report - were deliberately not
-  implemented rather than shipped from a possibly-subtly-wrong memory of
-  their derivation (both involve non-trivial quadratic-equation fits this
-  project had no reference implementation to validate against). DCT/DWT-
-  coefficient-domain steganalysis (which could in principle detect AIDE's
-  own transform-domain payload) wasn't attempted at all. See
-  `aide/steganalysis.py`'s module docstring.
+## Report objectives: status
+
+| Objective | Target | Status (measured) |
+|---|---|---|
+| O1 lightweight model | < 5 ms/block CPU inference | **Met:** 0.10 ms/block feature extraction + 0.06 ms single-block decision (`aide benchmark --inference`); model 13 KB |
+| O2 adaptive locations/payload | per-block map, unique per image | **Met:** score-ranked, gated, per-block bpp and method |
+| O3 encryption | AES-256-GCM, image-bound key | **Met,** hardened with scrypt |
+| O4 robustness | BER < 0.01, > 98% at JPEG Q50 and σ=20 | **Met by `robust`:** 24/24 at both (BER 0); `balanced` meets JPEG only |
+| O5 tamper localization | per-block hash map + chi-square + RS analysis | **Met:** hash + histogram tamper map; chi-square, SPA and RS analysis |
+| O6 recovery | > 98% under moderate attacks | **Met by `robust`:** 100% on 15 of 16 scenarios, 96% on 0.5× rescale |
+| O7 vs CNN baselines | ≥ 4× faster, < 10 MB | **Partial:** 13 KB model, ~0.15 s embed / 0.04 s recover per 512² image on one CPU core; the SteganoGAN/HiDDeN comparison has not been run |
+| Quality | PSNR > 42 dB, SSIM > 0.98 | **Met by `quality`** (43.4 dB / 0.984); stronger profiles trade quality for robustness |
+
+## Known limitations and future work
+
+What remains is listed plainly:
+
+- **Detectable by targeted steganalysis** (see Security analysis). The fix
+  is research-level: side-informed embedding with syndrome-trellis codes
+  (STC) to minimise a distortion function, or keyed and dithered pair
+  selection to remove the QIM gap. Not attempted.
+- **Geometric desynchronization.** Rotation, true cropping (canvas
+  change) and aspect-ratio changes misalign the block grid. Simulated
+  cropping replaces regions in place. Fixing this needs a registration
+  template or invariant-domain embedding.
+- **`quality` is not noise-robust** (0% at σ ≥ 10), by design. Use
+  `balanced` or stronger for noisy channels.
+- **Capacity vs robustness.** Long messages near capacity lose the
+  low-frequency layout preference and with it most 0.5×-rescale survival.
+- **Training scale.** Trained on 334 BOSSbase images, not ALASKA2 (80k+).
+  `aide train` and `aide train-detector` accept any folder, so scaling up
+  is a data task. The ML detector is trained on one cover source and its
+  OOD guard only softens verdicts.
+- **CNN baselines (O7)** were not benchmarked, because this environment
+  has no pretrained SteganoGAN/HiDDeN weights.
+- **Raspberry Pi timings** are not measured. Run `aide benchmark
+  --inference` on the target.
+- **Color-aware attacks.** Chroma-subsampling JPEG effects are not
+  modelled (luma-only pipeline).
+- **The Docker image** builds from the included Dockerfile and its
+  entrypoint is verified locally with gunicorn. The container build itself
+  runs in CI.
+
+## Testing and quality
+
+```bash
+pytest -q         # 146 tests: unit, ground-truth validation, end-to-end CLI/HTTP, attack recovery,
+                  # and a real AIDE 0.1 file (tests/fixtures) that must keep decoding
+ruff check .      # lint (configured in pyproject.toml)
+aide benchmark    # the multi-image numbers above
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, then tests on Python 3.10–3.12
+with freshly fetched covers and freshly trained models, then a benchmark
+smoke test and a Docker build with a container health check.
 
 ## Technology stack
 
-Matches the report's section 8: OpenCV, scikit-learn, NumPy,
-pycryptodome, reedsolo, scipy, PyWavelets, Pillow, scikit-image, pytest,
-requests, psutil, joblib. CPU-only throughout; no GPU/CUDA dependency.
+OpenCV, scikit-learn, NumPy, SciPy, PyWavelets, Pillow, scikit-image,
+pycryptodome (AES-GCM, scrypt), reedsolo, psutil, joblib, Flask + gunicorn,
+pytest, ruff. CPU-only throughout; no GPU/CUDA dependency.

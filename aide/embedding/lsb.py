@@ -16,7 +16,8 @@ def capacity_bits(block_shape: tuple[int, int], bpp: int) -> int:
     return h * w * bpp
 
 
-def embed(block: np.ndarray, bpp: int, bits: np.ndarray) -> np.ndarray:
+def embed(block: np.ndarray, bpp: int, bits: np.ndarray, delta: float | None = None) -> np.ndarray:
+    """`delta` is accepted for interface parity with DCT/DWT and ignored."""
     flat = block.flatten().astype(np.uint8)
     n_pixels = flat.size
     needed = n_pixels * bpp
@@ -44,3 +45,15 @@ def extract(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndar
     for k in range(bpp):
         bits_2d[:, k] = (values >> (bpp - 1 - k)) & 1
     return bits_2d.reshape(-1)[:num_bits]
+
+
+# LSB has no analog margin: a substituted bit is either intact or flipped,
+# and every attack measured flips ~half of them. Reported as a constant,
+# deliberately low reliability so reliability-guided decoding treats LSB
+# bits as the first candidates for erasure.
+LSB_SOFT_MAGNITUDE = 1.0
+
+
+def extract_soft(block: np.ndarray, bpp: int, num_bits: int | None = None) -> np.ndarray:
+    bits = extract(block, bpp, num_bits).astype(np.float64)
+    return (bits * 2.0 - 1.0) * LSB_SOFT_MAGNITUDE

@@ -21,6 +21,7 @@ import os
 from dataclasses import dataclass
 
 from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import scrypt
 
 KEY_LEN = 32  # AES-256
 NONCE_LEN = 12  # standard GCM nonce size
@@ -44,21 +45,44 @@ def hash_image_bytes(image_bytes: bytes) -> bytes:
     return hashlib.sha256(image_bytes).digest()
 
 
-def derive_key(image_hash: bytes, shared_secret: bytes) -> bytes:
-    """key = SHA-256(image_hash + shared_secret) -> 32 bytes for AES-256."""
-    return hashlib.sha256(image_hash + shared_secret).digest()
+# Key-derivation functions. "sha256" is the report's literal formula
+# (key = SHA-256(image_hash + shared_secret)) and is what every aide-0.1
+# sidecar used. "scrypt" (RFC 7914) is the default for new embeddings: a
+# shared secret is often a human-chosen passphrase, and a single SHA-256
+# lets an adversary who captured a stego image test billions of guesses
+# per second offline; scrypt's memory-hard cost (N=2^14, r=8, p=1, ~16 MB,
+# tens of ms) makes that brute force orders of magnitude more expensive.
+# The image hash / salt is still bound in exactly as the report specifies.
+KDF_SHA256 = "sha256"
+KDF_SCRYPT = "scrypt"
+DEFAULT_KDF = KDF_SCRYPT
+SCRYPT_N, SCRYPT_R, SCRYPT_P = 2 ** 14, 8, 1
 
 
-def encrypt(plaintext: bytes, image_hash: bytes, shared_secret: bytes) -> EncryptedPayload:
-    key = derive_key(image_hash, shared_secret)
-    nonce = os.urandom(NONCE_LEN)
+def derive_key(image_hash: bytes, shared_secret: bytes, kdf: str = KDF_SHA256) -> bytes:
+    """32-byte AES-256 key bound to both the image hash/salt and the secret."""
+    if kdf == KDF_SHA256:
+        return hashlib.sha256(image_hash + shared_secret).digest()
+    if kdf == KDF_SCRYPT:
+        return scrypt(shared_secret, image_hash, KEY_LEN, N=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P)
+    raise ValueError(f"unknown kdf {kdf!r}")
+
+
+def encrypt(plaintext: bytes, image_hash: bytes, shared_secret: bytes,
+            kdf: str = KDF_SHA256, nonce: bytes | None = None) -> EncryptedPayload:
+    """`nonce` may be supplied only when the derived key is single-use (e.g.
+    blind mode derives it from a fresh random salt that is also mixed into
+    the key) - never reuse a (key, nonce) pair with GCM."""
+    key = derive_key(image_hash, shared_secret, kdf)
+    nonce = os.urandom(NONCE_LEN) if nonce is None else nonce
     cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
     ciphertext, tag = cipher.encrypt_and_digest(plaintext)
     return EncryptedPayload(ciphertext=ciphertext, nonce=nonce, tag=tag)
 
 
-def decrypt(payload: EncryptedPayload, image_hash: bytes, shared_secret: bytes) -> bytes:
-    key = derive_key(image_hash, shared_secret)
+def decrypt(payload: EncryptedPayload, image_hash: bytes, shared_secret: bytes,
+            kdf: str = KDF_SHA256) -> bytes:
+    key = derive_key(image_hash, shared_secret, kdf)
     cipher = AES.new(key, AES.MODE_GCM, nonce=payload.nonce)
     try:
         return cipher.decrypt_and_verify(payload.ciphertext, payload.tag)

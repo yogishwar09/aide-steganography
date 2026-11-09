@@ -13,7 +13,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-OUT = Path("/Users/yogishwar/PS1/docs/AIDE_System_Report.pdf")
+OUT = Path(__file__).resolve().parent / "AIDE_System_Report.pdf"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
 NAVY = colors.HexColor("#12243b")
@@ -101,10 +101,13 @@ table([
     ["Metric", "Measured value"],
     ["Decision-engine training set", "334 real BOSSbase images, ~342,000 image blocks"],
     ["Method-classifier validation accuracy", "0.877 (bpp regressor MAE ~0.14)"],
-    ["Embed time (CPU, ~0.5 MP image)", "~360 ms   |   Recover time ~30 ms"],
-    ["Memory footprint (RSS delta per embed)", "~12&ndash;13 MB"],
-    ["Stego image quality (no attack)", "PSNR ~33&ndash;51 dB, SSIM ~0.92&ndash;0.98"],
-    ["Automated tests", "74 passing (1 boundary-sensitive xfail, documented)"],
+    ["Version", "AIDE 0.2 (robustness profiles, blind mode, GMD decoding, SPA/RS + ML steganalysis)"],
+    ["Embed time (one CPU core, 512&times;512)", "~150 ms   |   Recover time ~40 ms   |   0.16 ms/block inference"],
+    ["Decision-engine model size", "13 KB"],
+    ["Stego quality by profile (30 covers)", "quality 43.4 dB / 0.984 &nbsp;|&nbsp; balanced 40.1 / 0.967 "
+     "&nbsp;|&nbsp; robust 35.0 / 0.912 &nbsp;|&nbsp; fortress 30.5 / 0.803 (PSNR / SSIM)"],
+    ["Report O4 (JPEG Q50 + Gaussian &sigma;=20)", "Met by the robust profile: 24/24 covers, BER 0"],
+    ["Automated tests", "146 passing (no expected failures)"],
     ["Hardware requirement", "CPU only &mdash; no GPU / CUDA anywhere"],
 ], [190, 300])
 caption("All numbers in this document are measured from the running system and locked by an "
@@ -134,9 +137,12 @@ p("Take an <b>arbitrary intercepted image</b> &mdash; no shared secret, no side-
 
 h2("1.3&nbsp;&nbsp;How you use it")
 bullets([
-    "<b>Command line:</b> <font face='Courier'>aide embed / extract / attack / evaluate / detect / train</font>",
-    "<b>Local web console</b> (<font face='Courier'>python webapp/app.py</font> &rarr; browser at "
-    "127.0.0.1:5050): an Operator tab and an Analyst tab, click-through, no internet needed.",
+    "<b>Command line:</b> <font face='Courier'>aide embed / extract / capacity / attack / evaluate / "
+    "detect / benchmark / train / train-detector / profiles</font>",
+    "<b>Web console</b> (<font face='Courier'>python webapp/app.py</font> or gunicorn / Docker): "
+    "Operator, Analyst (single image and batch screening) and Model Insights pages.",
+    "<b>REST API:</b> versioned <font face='Courier'>/api/v1/*</font> endpoints with an OpenAPI "
+    "spec, optional API-key auth, JSON errors and request IDs.",
     "<b>Python API:</b> <font face='Courier'>aide.pipeline.embed() / recover()</font>, "
     "<font face='Courier'>aide.steganalysis.analyze()</font>.",
 ])
@@ -170,36 +176,47 @@ table([
      "Four normalised signals per block: texture (Local Binary Pattern + GLCM energy), Shannon "
      "entropy, pixel variance, edge strength (Sobel + Canny)."],
     ["4", "AIDE decision engine", "model.AIDEModel.decide",
-     "Trained decision tree scores each block: S(b)=&alpha;&middot;texture + &beta;&middot;entropy + "
-     "&gamma;&middot;variance + &delta;&middot;edge. Blocks below threshold &tau; are skipped; the "
-     "rest are ranked and assigned a method (LSB/DCT/DWT) and a bit-rate."],
+     "Trained decision tree (or tiny MLP) scores each block: S(b)=&alpha;&middot;texture + "
+     "&beta;&middot;entropy + &gamma;&middot;variance + &delta;&middot;edge. Blocks below threshold "
+     "&tau; are skipped; the rest are ranked and assigned a method and a bit-rate. The chosen "
+     "<i>robustness profile</i> supplies the coefficient separation, RS strength and bpp cap."],
     ["5", "Encrypt", "crypto.encrypt",
-     "AES-256-GCM. Key = SHA-256(image-hash + shared-secret), so the same message in two different "
-     "photos produces unrelated ciphertext. A GCM authentication tag is attached."],
-    ["6", "Error-correction code", "ecc.encode",
-     "Reed-Solomon RS(255,223): every 223 payload bytes get 32 parity bytes &rarr; up to 16 corrupted "
-     "bytes (or 32 known-erased bytes) recoverable per 255-byte codeword. ~14% overhead."],
+     "AES-256-GCM. Key = scrypt(shared-secret, image-hash) &mdash; memory-hard, so captured images "
+     "cannot be brute-forced cheaply against a weak passphrase. A GCM authentication tag is attached."],
+    ["6", "Error-correction code", "ecc.plan / ecc.encode",
+     "Reed-Solomon with profile-specific parity (e.g. 64 parity bytes per 255 for <i>balanced</i>). "
+     "Short messages are split into &ge;4 shortened codewords at the same parity ratio so "
+     "interleaving can still spread damage."],
     ["7", "Interleave", "ecc.interleave",
      "Scatter each codeword's bytes across many non-adjacent blocks, so a localised loss (a crop, a "
      "splice) damages a few bytes of many codewords instead of destroying whole codewords."],
-    ["8", "Adaptive embedding", "embedding.lsb / dct / dwt",
-     "Write the interleaved bits into each block using its assigned method: LSB substitution for "
-     "flat regions; mid-frequency DCT coefficient-pair QIM for textured regions; 2-level Haar DWT "
-     "coarse-sub-band QIM for edge regions."],
+    ["8", "Adaptive embedding", "embedding.dct (lsb / dwt optional)",
+     "Write the interleaved bits as mid-frequency DCT coefficient-pair QIM, preferring the 8 "
+     "lowest robust pairs per block (relaxed only if the message would not fit). LSB/DWT blocks "
+     "are left untouched by default &mdash; measured to cause ~40% of errors on ~2% of bits."],
     ["9", "Tamper references", "tamper.build_references",
      "For every block actually used, store a SHA-256 hash and an 8-bin histogram in a sidecar JSON, "
      "for reference-based tamper localisation at recovery time."],
     ["10", "Output", "pipeline / webapp",
-     "Return the stego image (colour recombined if needed) plus the sidecar JSON, and report PSNR, "
-     "SSIM, blocks used, and the LSB/DCT/DWT method mix."],
+     "Return the stego image (colour recombined if needed) plus the sidecar JSON (profile, RS "
+     "parameters and KDF recorded), and report PSNR, SSIM and blocks used."],
 ], [16, 74, 92, 300])
 
 h2("2.2&nbsp;&nbsp;RECOVER path (Operator &rarr; &ldquo;Recover&rdquo;)")
 p("The reverse of steps 8&rarr;5, driven entirely by the sidecar (no ML model needed at the "
   "receiver): recompute each block's hash and compare to the reference &rarr; a spatial "
-  "<i>tamper map</i>; extract bits per the stored method map; reverse the interleave; Reed-Solomon "
-  "decode, feeding the tamper-flagged blocks in as <i>known erasures</i> (doubling correction power); "
-  "AES-256-GCM decrypt and verify the tag. Tag failure = &ldquo;tampered beyond recovery&rdquo;.")
+  "<i>tamper map</i>; extract bits <i>with a soft reliability per bit</i> (the coefficient-pair "
+  "margin); reverse the interleave; Reed-Solomon decode with tamper-flagged blocks as known erasures "
+  "and <b>GMD reliability-guided decoding</b> (the least reliable bytes are tried as erasures, and "
+  "the candidate with the smallest reliability-weighted distance wins, up to 2t errors instead of "
+  "t); AES-256-GCM decrypt and verify the tag. Tag failure = &ldquo;tampered beyond recovery&rdquo;.")
+
+h2("2.2b&nbsp;&nbsp;BLIND mode (no sidecar)")
+p("A self-describing alternative: blocks are visited in a keyed pseudo-random order derived from the "
+  "secret; a 14-byte header (profile, random salt, length) is RS-protected and stored three times with "
+  "soft combining; the AIDE score sets each block's embedding <i>strength</i>, which the receiver does "
+  "not need because extraction reads only the sign of each pair difference. The receiver needs only "
+  "the image and the secret; a wrong secret finds no header at all.")
 
 h2("2.3&nbsp;&nbsp;DETECT path (Analyst &rarr; &ldquo;Analyze&rdquo;)")
 p("Completely independent of the sidecar. Takes only the image:")
@@ -213,8 +230,13 @@ bullets([
     "correlation toward zero.",
     "<b>LSB bit-balance</b> &mdash; deviation of the LSB plane from a 50/50 split (weakest signal, "
     "low weight).",
-    "Combined into a suspicion score and a verdict: <i>clean</i> / <i>suspicious</i> / "
-    "<i>likely&nbsp;steganographic</i>.",
+    "<b>Sample Pairs Analysis + RS analysis</b> &mdash; quantitative estimators of the embedded "
+    "fraction, validated against known embedding rates; they catch randomly scattered LSB payloads "
+    "chi-square misses and report an estimated payload size.",
+    "<b>Trained ML steganalyser</b> &mdash; SPAM + DCT coefficient-pair features, gradient boosting, "
+    "with an IsolationForest guard that caps verdicts on images unlike its training covers.",
+    "Combined into a verdict: <i>clean</i> / <i>suspicious</i> / <i>likely&nbsp;steganographic</i> "
+    "(most severe of the statistical and ML verdicts).",
 ])
 
 sp(6)
@@ -228,24 +250,22 @@ p("The project's method is &ldquo;measure, don't assume&rdquo;: every claim belo
   "test on real BOSSbase images, and several of the original report's assumptions did <b>not</b> "
   "survive contact with measurement.")
 
-h2("3.1&nbsp;&nbsp;What reliably works")
+h2("3.1&nbsp;&nbsp;Measured recovery by robustness profile")
+p("Bit-exact, AES-GCM-verified recovery on 30 BOSSbase covers, 156-byte message "
+  "(<font face='Courier'>aide benchmark</font>, reports/benchmark/benchmark.md):")
 table([
-    ["Scenario", "Result", "Note"],
-    ["No attack", "100% exact recovery", "PSNR clears the report's 42 dB target for short messages "
-     "on textured covers."],
-    ["JPEG compression, quality 30&ndash;70", "Recovers reliably", "Meets and exceeds report "
-     "objective O4's stated target of Q=50."],
-    ["Localised splicing / region replacement", "Recovers", "When the message spans several RS "
-     "codewords so interleaving can spread the damage. Tamper localisation flags 100% of genuinely "
-     "replaced blocks."],
-    ["Mild Gaussian noise (&sigma;&asymp;10), Gaussian blur", "Recovers reliably", "&mdash;"],
-    ["3&times;3 median filter, mild (0.75&times;) scaling", "Recovers", "Only after the DWT and DCT "
-     "fixes described in 3.2&ndash;3.3."],
-    ["Wrong shared secret or tampered ciphertext", "Always rejected", "AES-GCM tag verification "
-     "never lets a corrupted message through as valid."],
-    ["Colour (RGB) covers", "Full colour fidelity", "Embed in luma only; chroma passes through "
-     "untouched; survives a real PNG save/reload + attack."],
-], [150, 110, 230])
+    ["Attack", "quality", "balanced", "robust", "fortress"],
+    ["JPEG Q50 (O4) / Q30", "100% / 20%", "100% / 100%", "100% / 100%", "100% / 100%"],
+    ["Gaussian noise &sigma;=10 / &sigma;=20 (O4)", "0% / 0%", "100% / 0%", "100% / 100%", "100% / 100%"],
+    ["Salt &amp; pepper 1%", "0%", "0%", "100%", "100%"],
+    ["Median 3&times;3 / Gaussian blur", "52% / 100%", "100% / 100%", "100% / 100%", "100% / 100%"],
+    ["Rescale 0.75&times; / 0.5&times;", "100% / 40%", "100% / 92%", "100% / 96%", "100% / 100%"],
+    ["Splice 5% / Crop 10%", "100% / 84%", "100% / 88%", "100% / 100%", "100% / 100%"],
+    ["Mean PSNR / SSIM", "43.4 dB / 0.984", "40.1 / 0.967", "35.0 / 0.912", "30.5 / 0.803"],
+], [140, 85, 85, 85, 85])
+p("For comparison, AIDE 0.1's fixed parameters on the same covers: &sigma;=20, salt &amp; pepper and "
+  "0.5&times; rescale 0%, median 69%, splice 5% 85%, crop 10% 50% (PSNR 39.7 dB). Wrong secrets and "
+  "tampered ciphertext are always rejected; colour covers keep full chroma fidelity.")
 
 h2("3.2&nbsp;&nbsp;Finding: the DWT method as originally conceived did not work")
 p("Single-level Haar DWT embedding in the horizontal/vertical <i>detail</i> sub-bands measured "
@@ -272,48 +292,54 @@ h2("3.4&nbsp;&nbsp;Finding: LSB is fragile to essentially everything")
 p("Measured ~45&ndash;55% bit-error rate under every attack tried, including a plain re-save. LSB "
   "depends on exact pixel values. Its error rate is so much higher than DCT/DWT's that even 1% of "
   "the payload coming from LSB was measured to flip an otherwise-passing recovery into a failure. "
-  "<b>Fix:</b> the payload allocator caps LSB at 0.5% and DWT at 2% of the RS-encoded payload; DCT "
-  "(the most broadly robust method after 3.3) carries the rest. LSB is kept non-zero only so the "
-  "&ldquo;adaptive, multi-method&rdquo; behaviour stays visible.")
+  "<b>Fix (0.2):</b> per-method attribution showed LSB and DWT causing ~40% of median-filter bit "
+  "errors on ~2% of the bits, so every profile now routes the payload to DCT only; zeroing the "
+  "budgets raised 10%-crop recovery from 52% to 88% at <i>better</i> PSNR. The engine still "
+  "decides where, how much and which method; LSB/DWT blocks are left untouched.")
 
-h2("3.5&nbsp;&nbsp;What still does not work (documented, not hidden)")
+h2("3.5&nbsp;&nbsp;What 0.2 changed, and what still does not work")
 bullets([
-    "<b>Aggressive 0.5&times; scaling</b> &mdash; and the report itself calls scaling attacks "
-    "&ldquo;the most damaging&rdquo;. Per-codeword error counts land far past the correction budget "
-    "even with DCT carrying ~97% of the payload.",
-    "<b>Gaussian noise &sigma; &ge; 20</b> (a report O4 target) and <b>salt-and-pepper noise</b> "
-    "&mdash; this one is a deliberate dial: raising DCT's coefficient separation from 40 to ~150 "
-    "makes &sigma;=20 fully recoverable, at a real image-quality cost (block PSNR ~30 dB &rarr; "
-    "~20 dB). Shipped conservative by default.",
-    "<b>Cropping / splicing beyond ~2&ndash;3%</b> of the image relative to how many codewords the "
-    "message spans &mdash; exceeds the erasure budget outright, though detection still works.",
-    "<b>Single-codeword (very short) messages</b> get zero benefit from interleaving &mdash; with "
-    "one codeword there is nothing to spread damage <i>across</i>.",
+    "<b>Solved in 0.2:</b> &sigma;=20 noise and salt-and-pepper (robust profile), 0.5&times; rescaling "
+    "(fortress 100%, balanced 92%), median filtering (100% from balanced up), single-codeword "
+    "messages (shortened RS codewords), and the mandatory sidecar (blind mode).",
+    "<b>Targeted detectability</b> &mdash; see 3.6: a trained detector catches AIDE. Fixing it needs "
+    "side-informed embedding (e.g. syndrome-trellis codes); not attempted.",
+    "<b>Geometric desynchronisation</b> &mdash; rotation and true (canvas-changing) cropping misalign "
+    "the block grid; no registration template yet.",
+    "<b>Capacity vs robustness</b> &mdash; messages near capacity lose the low-frequency layout "
+    "preference and most 0.5&times;-rescale survival.",
+    "<b>Scale</b> &mdash; trained on 334 BOSSbase images (not ALASKA2); CNN baselines (O7) and "
+    "Raspberry Pi timings not measured.",
 ])
 
 h2("3.6&nbsp;&nbsp;Finding: the detection side, and what it says about AIDE's own stealth")
 table([
     ["Test", "Measured outcome"],
-    ["Clean real images falsely flagged", "1 in 40 (2.5%) &mdash; consistent with the statistical "
-     "test's own significance level, not a bias."],
-    ["Naive full-image sequential LSB steganography", "Detected in 100% of cases; detection degrades "
-     "honestly at lower embedding rates (a known limit of the classical whole-image test)."],
-    ["AIDE's <i>own</i> adaptive stego images", "0 of 15 flagged &mdash; a verified answer to the "
-     "report's own &ldquo;Detectability (RS analysis): Negative&rdquo; claim, <i>scoped to this "
-     "classical detector only</i>."],
+    ["SPA / RS accuracy vs ground truth", "True rate 0.25 &rarr; 0.27 / 0.28; 0.50 &rarr; 0.51 / 0.53; "
+     "clean covers &asymp; 0.03"],
+    ["Clean images falsely flagged (held out)", "1 in 40 (2.5%), thresholds calibrated on 200 disjoint covers"],
+    ["Randomly scattered LSB at a 10% rate", "40 / 40 detected (chi-square alone: ~0)"],
+    ["AIDE stego vs classical detectors", "0 of 15 flagged by chi-square, SPA or RS"],
+    ["AIDE stego vs the trained ML detector", "100% detected for every profile and mode, AUC 0.998&ndash;1.000, "
+     "1% false positives (100 held-out covers)"],
 ], [200, 290])
-p("Why AIDE evades this detector: its LSB share is capped under 1% (too little to shift the "
-  "whole-image pair-equalisation statistic), and the bulk of the payload lives in DCT/DWT "
-  "coefficients that a spatial-LSB-only detector cannot see. This is a <b>scoped</b> claim &mdash; "
-  "it says nothing about more advanced steganalysis (Sample Pairs Analysis, RS rate estimation, "
-  "transform-domain or ML-based detectors), which are documented as not implemented.")
+p("The honest conclusion: AIDE meets the report's &ldquo;negative detectability&rdquo; claim against "
+  "classical blind tools only. Coefficient-pair QIM forces |c<sub>i</sub> &minus; c<sub>j</sub>| "
+  "&ge; &delta;, leaving a deficit of small pair differences that a targeted detector learns "
+  "immediately. A second finding came from the same detector: trained on photographs, it scored a "
+  "clean synthetic pattern at P(stego)=0.99 (cover-source mismatch), which is why an "
+  "out-of-distribution guard now caps such verdicts.")
 
 h2("3.7&nbsp;&nbsp;A finding about method itself")
 p("A false-positive regression in the detector was caught <i>by testing</i> before shipping: an "
   "early scoring change that folded a per-row-band breakdown into the verdict amplified 1/40 clean "
   "images being flagged into 16/20. It was reverted, and the row-band data kept as a labelled "
   "&ldquo;diagnostic only&rdquo; display. The general pattern &mdash; a plausible improvement that "
-  "measurement rejects &mdash; recurred often enough to be the project's main working lesson.")
+  "measurement rejects &mdash; recurred often enough to be the project's main working lesson. In 0.2 "
+  "it recurred again: the first GMD decoder accepted the first successful decode and was measured to "
+  "<i>mis-correct</i> on short codewords (all 13 failures of a 20-trial test were wrong-but-valid "
+  "codewords, caught by the GCM tag); minimum-distance selection plus saturation-aware reliability "
+  "took that test to 20/20.")
 
 story.append(PageBreak())
 
@@ -335,15 +361,17 @@ h2("4.2&nbsp;&nbsp;Cryptography &amp; coding parameters")
 table([
     ["Component", "Parameter"],
     ["Cipher", "AES-256 in GCM mode (FIPS 197), 12-byte nonce, 16-byte tag"],
-    ["Key derivation", "SHA-256(SHA-256(cover file bytes) + shared secret)"],
-    ["Error-correcting code", "Reed-Solomon RS(255,223), t = 16 (or 32 known erasures) per codeword"],
+    ["Key derivation", "scrypt(shared secret, SHA-256(cover bytes)), N=2<super>14</super>, r=8, p=1; "
+     "SHA-256 (report formula) for 0.1 files"],
+    ["Error-correcting code", "Reed-Solomon, parity per 255 bytes: 64 / 64 / 104 / 176 by profile; "
+     "shortened codewords for short messages; GMD reliability-guided decoding"],
     ["Interleaving", "Column-major over the codeword matrix &mdash; adjacent embedded bytes belong "
      "to different codewords"],
-    ["DCT embedding", "Mid-frequency zigzag coefficient pairs, relative-magnitude QIM, "
-     "separation delta = 40, frequency-band capped for robustness"],
-    ["DWT embedding", "2-level Haar, coefficient pairs in the coarse approximation sub-band, "
-     "separation delta = 40"],
-    ["Payload allocation caps", "LSB &le; 0.5%, DWT &le; 2% of the RS-encoded payload; DCT unbounded"],
+    ["DCT embedding", "Mid-frequency zigzag coefficient pairs, relative-magnitude QIM, separation "
+     "&delta; = 20 / 36 / 64 / 80 by profile, preferring the 8 lowest robust pairs per block"],
+    ["DWT embedding", "2-level Haar, coefficient pairs in the coarse approximation sub-band "
+     "(available; payload budget 0 by default)"],
+    ["Blind-mode header", "14 bytes (magic, version+profile, 8-byte salt, length), RS(40,18), 3&times; soft-combined"],
 ], [130, 360])
 
 h2("4.3&nbsp;&nbsp;Attack simulation library")
@@ -354,13 +382,14 @@ p("Eight concrete simulations across the report's six categories: JPEG compressi
 
 h2("4.4&nbsp;&nbsp;Technology stack")
 p("Python 3, CPU only. NumPy, OpenCV, scikit-learn, scikit-image, SciPy, PyWavelets, PyCryptodome, "
-  "reedsolo, Pillow for the core; Flask for the web console; pytest for the 74-test suite. No GPU, "
+  "reedsolo, Pillow for the core; Flask + gunicorn for the console and REST API; pytest for the "
+  "146-test suite; ruff, Docker and GitHub Actions CI for engineering. No GPU, "
   "CUDA, or proprietary hardware anywhere &mdash; deployable on a Raspberry Pi 4 / Jetson-class "
   "board, as the report intends.")
 
 sp(10)
 story.append(Paragraph(
-    "Generated from the running AIDE system on 2026-09-10. Full source, tests, and the honest "
+    "Generated from the running AIDE 0.2 system on 2026-10-11. Full source, tests, and the honest "
     "&ldquo;what works / what doesn't&rdquo; breakdown: github.com/yogishwar09/aide-steganography "
     "(see README.md).", styles["Caption"]))
 

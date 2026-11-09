@@ -123,10 +123,65 @@ def extract_block_features(gray_block: np.ndarray) -> np.ndarray:
     ], dtype=np.float64)
 
 
+def _blockify(gray: np.ndarray, block_size: int) -> np.ndarray:
+    """(n_blocks, bs, bs) view of the full blocks, row-major block order."""
+    h, w = gray.shape
+    nh, nw = h // block_size, w // block_size
+    return (gray[: nh * block_size, : nw * block_size]
+            .reshape(nh, block_size, nw, block_size).swapaxes(1, 2)
+            .reshape(nh * nw, block_size, block_size))
+
+
+def _glcm_energy_batch(stack: np.ndarray) -> np.ndarray:
+    """Exactly skimage's graycoprops(graycomatrix(b, [1], [0], 256,
+    symmetric=True, normed=True), "energy") for every block at once.
+
+    With C the horizontal co-occurrence counts, the symmetric matrix is
+    M = C + C^T and energy = sqrt(sum(M^2)) / sum(M). Off-diagonal entries
+    of M equal the count u_ij of *unordered* pairs {i, j} (each appearing
+    twice in M), diagonal entries are 2 * c_ii, so
+        sum(M^2) = 2 * sum_{i<j} u_ij^2 + 4 * sum_i c_ii^2,
+    computable with one np.unique over (block, min, max) keys instead of a
+    256x256 matrix per block - ~10x faster, numerically identical."""
+    n, h, w = stack.shape
+    a = stack[:, :, :-1].astype(np.int64).reshape(n, -1)
+    b = stack[:, :, 1:].astype(np.int64).reshape(n, -1)
+    lo, hi = np.minimum(a, b), np.maximum(a, b)
+    block_id = np.repeat(np.arange(n, dtype=np.int64), a.shape[1])
+    keys = block_id * 65536 + lo.ravel() * 256 + hi.ravel()
+    uniq, counts = np.unique(keys, return_counts=True)
+    ublock = uniq // 65536
+    diag = ((uniq % 65536) // 256) == (uniq % 256)
+    sq = counts.astype(np.float64) ** 2 * np.where(diag, 4.0, 2.0)
+    total_sq = np.bincount(ublock, weights=sq, minlength=n)
+    s = 2.0 * a.shape[1]
+    return np.sqrt(total_sq) / s
+
+
+def _entropy_batch(stack: np.ndarray) -> np.ndarray:
+    """Exactly `block_entropy` for every block (256-bin histogram)."""
+    n = stack.shape[0]
+    flat = stack.reshape(n, -1).astype(np.int64)
+    # np.histogram(range=(0, 255), bins=256) puts 254 and 255 in the last
+    # bin; replicate that binning exactly.
+    binned = np.minimum(np.floor(flat * 256 / 255).astype(np.int64), 255)
+    counts = np.bincount((np.arange(n)[:, None] * 256 + binned).ravel(), minlength=n * 256)
+    counts = counts.reshape(n, 256).astype(np.float64)
+    p = counts / counts.sum(axis=1, keepdims=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ent = -np.where(p > 0, p * np.log2(p), 0.0).sum(axis=1)
+    return ent / np.log2(256)
+
+
 def extract_image_features(gray: np.ndarray, block_size: int | None = None
                             ) -> tuple[list[Block], np.ndarray]:
     """Partition a grayscale image and extract the feature matrix (N, 4)
-    over all blocks, in the same order as the returned Block list."""
+    over all blocks, in the same order as the returned Block list.
+
+    GLCM energy, entropy and variance are computed for all blocks at once
+    (vectorised, numerically identical to the per-block functions above -
+    see tests/test_features.py); LBP and Sobel/Canny stay per block because
+    their border handling must match the per-block definitions exactly."""
     if gray.ndim != 2:
         raise ValueError("extract_image_features expects a single-channel (grayscale) image")
     h, w = gray.shape
@@ -134,7 +189,15 @@ def extract_image_features(gray: np.ndarray, block_size: int | None = None
         block_size = choose_block_size(h, w)
     blocks = partition_blocks(h, w, block_size)
     features = np.zeros((len(blocks), 4), dtype=np.float64)
+    if not blocks:
+        return blocks, features
+    stack = _blockify(gray, block_size)
+    energy = np.clip(_glcm_energy_batch(stack), 0.0, 1.0)
     for b in blocks:
-        ys, xs = b.slice()
-        features[b.index] = extract_block_features(gray[ys, xs])
+        lbp = local_binary_pattern(stack[b.index], P=8, R=1, method="uniform")
+        lbp_entropy = _normalized_shannon_entropy(lbp.ravel(), 10)
+        features[b.index, 0] = np.clip(0.5 * lbp_entropy + 0.5 * (1.0 - energy[b.index]), 0.0, 1.0)
+        features[b.index, 3] = block_edge_strength(stack[b.index])
+    features[:, 1] = _entropy_batch(stack)
+    features[:, 2] = np.clip(stack.reshape(len(blocks), -1).astype(np.float64).std(axis=1) / 127.5, 0.0, 1.0)
     return blocks, features

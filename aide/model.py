@@ -98,7 +98,7 @@ class AIDEModel:
         (directory / "weights.json").write_text(json.dumps(payload, indent=2))
 
     @classmethod
-    def load(cls, directory: Path) -> "AIDEModel":
+    def load(cls, directory: Path) -> AIDEModel:
         directory = Path(directory)
         payload = json.loads((directory / "weights.json").read_text())
         blob = joblib.load(directory / "aide_model.joblib")
@@ -111,7 +111,7 @@ class AIDEModel:
         )
 
     @classmethod
-    def default(cls) -> "AIDEModel":
+    def default(cls) -> AIDEModel:
         """Formula-only fallback (no trained classifier): fixed equal
         weights and reasonable thresholds. Used until `aide train` has been
         run; the confidence gate and rule-based method selection from the

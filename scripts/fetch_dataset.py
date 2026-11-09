@@ -97,9 +97,9 @@ def fetch_boss_subset(count: int, out_dir: Path) -> int:
 
 
 def fetch_skimage_fallback(out_dir: Path) -> int:
-    from skimage import data as skdata
-    from PIL import Image
     import numpy as np
+    from PIL import Image
+    from skimage import data as skdata
 
     names = [
         "astronaut", "camera", "coffee", "chelsea", "coins", "horse",

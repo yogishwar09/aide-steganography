@@ -2,8 +2,9 @@
 
 Each method module exposes the same three functions:
     capacity_bits(block_shape, bpp) -> int
-    embed(block, bpp, bits) -> block
+    embed(block, bpp, bits, delta=None) -> block
     extract(block, bpp, num_bits=None) -> bits
+    extract_soft(block, bpp, num_bits=None) -> signed per-bit margins
 """
 from __future__ import annotations
 
