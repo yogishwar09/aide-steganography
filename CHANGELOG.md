@@ -19,6 +19,13 @@
   rates, open challenges with their path forward, a three-phase roadmap,
   application domains, and a responsible-use note. The headline recovery
   figure is read live from the committed benchmark.
+- The roadmap is now centred on **Major Project Phase 2** — a one-month,
+  four-week plan (deploy & secure; real-world channels & colour; geometric
+  resilience & bigger data; evaluate & document), each week with tasks, a
+  deliverable and a measurable target, plus a today → end-of-Phase-2 targets
+  table. Long-term scope follows as 3–6 month, 6–12 month and 1–2 year
+  horizons, and open challenges are tagged with the Phase 2 week that
+  addresses them.
 
 ## 0.2.0 — 2026-10-11
 

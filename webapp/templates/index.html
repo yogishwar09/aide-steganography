@@ -405,7 +405,7 @@
   .vstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 22px; }
   .vstrip .kpi .v { font-size: 1.3rem; }
 
-  .vsec-head { margin: 34px 0 16px; }
+  .vsec-head { margin: 34px 0 16px; scroll-margin-top: 96px; }
   .vsec-head h3 { margin: 4px 0 4px; font-size: 1.2rem; letter-spacing: -0.01em; }
   .vsec-head p { margin: 0; color: var(--text-dim); font-size: 0.86rem; max-width: 820px; }
 
@@ -472,6 +472,45 @@
     .jrow { grid-template-columns: 1fr; gap: 10px; }
     .vstrip { grid-template-columns: repeat(2, 1fr); }
   }
+
+
+  .p2 { background: linear-gradient(160deg, rgba(94,106,210,0.13), transparent 45%), var(--panel); border: 1px solid var(--accent-dim); border-radius: var(--radius); padding: 24px 26px; }
+  .p2-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+  .p2-head .t { font-size: 1.15rem; font-weight: 700; }
+  .p2-head .d { font-size: 0.84rem; color: var(--text-dim); margin-top: 4px; max-width: 720px; }
+  .p2-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .p2-badge { font-family: var(--mono); font-size: 0.72rem; padding: 5px 11px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; }
+  .p2-badge.alt { background: var(--panel-3); color: var(--text-dim); border: 1px solid var(--border); }
+  .weeks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .week { background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+  .week .wn { display: flex; align-items: center; gap: 10px; }
+  .week .wnum { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: var(--mono); font-size: 0.85rem; flex-shrink: 0; }
+  .week .wdays { font-family: var(--mono); font-size: 0.68rem; color: var(--accent-2); }
+  .week .wtitle { font-weight: 700; font-size: 0.95rem; line-height: 1.25; }
+  .week ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+  .week li { font-size: 0.79rem; color: var(--text-dim); line-height: 1.45; display: flex; gap: 8px; }
+  .week li::before { content: ""; width: 12px; height: 12px; border: 1.5px solid var(--border); border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+  .week .wbox { margin-top: auto; border-top: 1px dashed var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .week .wlab { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); font-weight: 700; }
+  .week .wdel { font-size: 0.8rem; color: var(--text); }
+  .week .wmet { font-family: var(--mono); font-size: 0.72rem; color: var(--ok); background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); border-radius: 6px; padding: 6px 8px; }
+  .p2-bottom { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+  table.targets { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.targets th { text-align: left; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); font-weight: 700; padding: 0 8px 8px 0; }
+  table.targets td { padding: 9px 8px 9px 0; border-top: 1px solid var(--border-soft); vertical-align: top; }
+  table.targets td:nth-child(2) { color: var(--text-faint); }
+  table.targets td:nth-child(3) { color: var(--ok); font-weight: 600; }
+  .p2-panel { background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 16px 18px; }
+  .p2-panel h4 { margin: 0 0 10px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-dim); }
+  .p2-panel .row-i { font-size: 0.8rem; color: var(--text-dim); padding: 6px 0; line-height: 1.45; }
+  .p2-panel .row-i b { color: var(--text); font-weight: 600; }
+  .chip-s.ph2 { background: var(--accent); color: #fff; }
+  .chip-s.lt { background: rgba(167,139,250,0.14); color: var(--purple); }
+  .horizon .pbar::after { border-color: var(--purple) !important; }
+  .horizon .pwhen { color: var(--purple) !important; }
+  .trl div.p2now { background: transparent; border: 2px solid var(--accent); color: var(--text); font-weight: 700; }
+  @media (max-width: 1100px) { .weeks { grid-template-columns: repeat(2, minmax(0, 1fr)); } .p2-bottom { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .weeks { grid-template-columns: 1fr; } }
 
   @media (max-width: 900px) {
     .sidebar { width: 68px; }
@@ -639,12 +678,16 @@
       <!-- ============ VISION & ROADMAP PAGE ============ -->
       <div class="page" id="page-vision">
         <div class="card vision-hero">
-          <div class="eyebrow">Future scope</div>
+          <div class="eyebrow">Future scope · Major Project Phase 2 and beyond</div>
           <h3>From a lab-validated engine to a deployable covert-communication and media-forensics platform.</h3>
-          <p>AIDE already does both jobs on one CPU: it moves encrypted messages through hostile, lossy channels, and it screens intercepted media for hidden data. This page sets out the problems that motivated it, the engineering challenges solved along the way, the ones still open, and the plan to close them.</p>
+          <p>AIDE already does both jobs on one CPU: it moves encrypted messages through hostile, lossy channels, and it screens intercepted media for hidden data. This page sets out the problems that motivated it, the engineering challenges solved in Phase 1, the ones still open, the one-month Phase 2 upgrade plan, and the long-term direction.</p>
           <div class="trl" id="trlBar"></div>
-          <div class="trl-legend"><span><b>TRL 4–5 today</b> — validated on real photographs in a lab environment</span><span><b>Target TRL 7</b> — demonstrated in an operational setting</span></div>
+          <div class="trl-legend"><span><b>TRL 4–5 today</b> — validated on real photographs in the lab</span><span><b>TRL 6 after Phase 2</b> — deployed and tested on real-world channels</span><span><b>TRL 7 long-term</b> — field-demonstrated</span></div>
           <div class="vstrip kpis" id="visionStrip"></div>
+          <div class="btn-row" style="margin-top:18px">
+            <button id="btnJumpP2"><svg class="icon" viewBox="0 0 24 24" style="width:15px;height:15px"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>Jump to Phase 2 plan</button>
+            <button class="secondary" id="btnJumpLT">Long-term scope</button>
+          </div>
         </div>
 
         <div class="vsec-head">
@@ -656,7 +699,7 @@
 
         <div class="vsec-head">
           <div class="vsec-eyebrow">02 · Engineering journey</div>
-          <h3>Challenges we faced building it, and how we solved them</h3>
+          <h3>Challenges we faced in Phase 1, and how we solved them</h3>
           <p>Each row is a real failure in AIDE 0.1, what fixed it, and the measured recovery rate before and after on the same 30 BOSSbase covers.</p>
         </div>
         <div class="journey" id="journey"></div>
@@ -664,19 +707,37 @@
         <div class="vsec-head">
           <div class="vsec-eyebrow">03 · Open challenges</div>
           <h3>What AIDE does not solve yet, and how it will</h3>
-          <p>Stated plainly, as measured. Each one has a concrete, known path forward.</p>
+          <p>Stated plainly, as measured. Five of the six are scheduled into Phase 2; the research-level one is long-term, with a Phase 2 stretch goal.</p>
         </div>
         <div class="open-grid" id="openGrid"></div>
 
-        <div class="vsec-head">
-          <div class="vsec-eyebrow">04 · Roadmap</div>
-          <h3>Future scope in three phases</h3>
-          <p>Click any item for detail. Phase 1 builds directly on what is in this repository today.</p>
+        <div class="vsec-head" id="secP2">
+          <div class="vsec-eyebrow">04 · Next upgrades</div>
+          <h3>Major Project Phase 2 — the one-month upgrade plan</h3>
+          <p>Four weekly sprints that take AIDE from a lab prototype to a deployed, real-world-tested system. Each week ends in a working deliverable and a measurable target, checked with the benchmark harness already in this repository.</p>
+        </div>
+        <div class="p2">
+          <div class="p2-head">
+            <div><div class="t">Phase 2 · 4 weeks · 4 deliverables</div>
+              <div class="d">Scoped to what one month can realistically deliver on top of the current codebase: deploy it, harden it against real messaging apps and geometric edits, then measure it against the baselines the report promised.</div></div>
+            <div class="p2-badges"><span class="p2-badge">1 month</span><span class="p2-badge alt">closes 5 of 6 open challenges</span><span class="p2-badge alt">TRL 4–5 → 6</span></div>
+          </div>
+          <div class="weeks" id="p2Weeks"></div>
+          <div class="p2-bottom">
+            <div class="p2-panel"><h4>Phase 2 targets — today → end of month</h4><table class="targets" id="p2Targets"></table></div>
+            <div class="p2-panel" id="p2Side"></div>
+          </div>
+        </div>
+
+        <div class="vsec-head" id="secLT">
+          <div class="vsec-eyebrow">05 · Long-term future scope</div>
+          <h3>Beyond the major project</h3>
+          <p>Where AIDE goes after Phase 2 — larger research and product steps. Click any item for detail.</p>
         </div>
         <div class="roadmap" id="roadmap"></div>
 
         <div class="vsec-head">
-          <div class="vsec-eyebrow">05 · Applications</div>
+          <div class="vsec-eyebrow">06 · Applications</div>
           <h3>Where this technology can go</h3>
           <p>The same core — adaptive embedding, authenticated encryption, error correction, tamper localization and steganalysis — serves well beyond defence.</p>
         </div>
@@ -684,7 +745,7 @@
 
         <div class="disclaimer ethics">
           <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          <div><b>Responsible use.</b> Steganography is dual-use. That is why AIDE ships the detector alongside the embedder, publishes its own detectability, and is designed for authorized operators: deployment adds authentication, role-based access and an audit trail (Phase 1).</div>
+          <div><b>Responsible use.</b> Steganography is dual-use. That is why AIDE ships the detector alongside the embedder, publishes its own detectability, and is designed for authorized operators: deployment adds authentication, role-based access and an audit trail (Phase 2, week 1).</div>
         </div>
       </div>
 
@@ -1588,46 +1649,82 @@ const VISION = {
     { prob: 'Detection only caught naive LSB', sub: 'Chi-square only', fix: 'Added Sample Pairs + RS analysis (payload-size estimates) and a trained gradient-boosted detector.', cap: '3 detector families' },
   ],
   open: [
-    { t: 'Targeted steganalysis can detect AIDE', chip: ['research', 'Research'],
+    { t: 'Targeted steganalysis can detect AIDE', chip: ['lt', 'Long-term · P2 stretch'],
       now: 'Classical detectors score AIDE images clean, but our own detector, trained on AIDE, flags 100% — the QIM pair gap is a statistical fingerprint.',
       path: 'Syndrome-trellis codes (STC) to minimise a distortion cost, keyed and dithered pair selection to erase the gap, and adversarial training against our own detector.' },
-    { t: 'Geometric desynchronization', chip: ['planned', 'Planned'],
+    { t: 'Geometric desynchronization', chip: ['ph2', 'Phase 2 · Week 3'],
       now: 'Rotation, true cropping (canvas change) and aspect-ratio changes misalign the block grid.',
       path: 'An embedded registration template or invariant-domain (Fourier–Mellin) embedding to re-synchronize before decoding.' },
-    { t: 'Training scale', chip: ['data', 'Data task'],
+    { t: 'Training scale', chip: ['ph2', 'Phase 2 · Week 3'],
       now: 'Models trained on 334 BOSSbase images; the detector knows one cover source.',
       path: 'Retrain on ALASKA2 (80k+ images, many cameras). Both trainers already accept any folder.' },
-    { t: 'Deep-learning baselines (O7)', chip: ['planned', 'Planned'],
+    { t: 'Deep-learning baselines (O7)', chip: ['ph2', 'Phase 2 · Week 4'],
       now: '13 KB model and ~0.15 s embed per 512² image, but no head-to-head with CNN methods yet.',
       path: 'Benchmark against SteganoGAN and HiDDeN on speed, size, quality and robustness using the existing harness.' },
-    { t: 'Colour-aware attacks', chip: ['planned', 'Planned'],
+    { t: 'Colour-aware attacks', chip: ['ph2', 'Phase 2 · Week 2'],
       now: 'The pipeline is luma-only; JPEG chroma subsampling effects are not modelled.',
       path: 'Model the YCbCr 4:2:0 path in the attack simulator and optionally embed in chroma for extra capacity.' },
-    { t: 'Edge hardware validation', chip: ['planned', 'Planned'],
+    { t: 'Edge hardware validation', chip: ['ph2', 'Phase 2 · Week 4'],
       now: 'Designed for CPU-only field devices, but Raspberry Pi timings are not yet measured.',
       path: 'Run `aide benchmark --inference` on ARM targets and publish the numbers alongside the desktop ones.' },
   ],
+  phase2: [
+    { days: 'Days 1–7', title: 'Deploy & secure', tasks: [
+        'Deploy the existing Docker image to a cloud host with HTTPS',
+        'Turn on API-key auth; add login with Operator and Analyst roles (SQLite)',
+        'Audit log of every embed, recover and screening request',
+        'CI deploys automatically on every push to main',
+      ], deliverable: 'Public HTTPS URL with login, roles and audit trail', metric: 'health check green · deploy on push' },
+    { days: 'Days 8–14', title: 'Real-world channels & colour', tasks: [
+        'Simulate WhatsApp-, Telegram- and e-mail-style re-encoding chains',
+        'Model colour JPEG (YCbCr 4:2:0 chroma subsampling) in the attack simulator',
+        'Auto-profile: recommend the lightest profile that survives the chosen channel',
+        'Add the channel tests to the benchmark and the Live Demo',
+      ], deliverable: 'Channel-aware Operator mode with automatic profile choice', metric: '≥ 95% recovery through each simulated platform' },
+    { days: 'Days 15–21', title: 'Geometric resilience & bigger data', tasks: [
+        'Embed a registration template; re-synchronize before decoding',
+        'Handle small rotations, true cropping (canvas change) and resizing to new dimensions',
+        'Retrain the decision engine and ML detector on 5,000+ multi-camera images (ALASKA2 subset)',
+        'Re-run the full benchmark on the new models',
+      ], deliverable: 'Rotation/crop-tolerant decoder and retrained models', metric: '≥ 90% recovery at ±2° rotation and 10% true crop' },
+    { days: 'Days 22–30', title: 'Evaluate, compare & document', tasks: [
+        'Head-to-head benchmark vs SteganoGAN and HiDDeN: speed, size, PSNR, robustness',
+        'Measure inference on a Raspberry Pi 4',
+        'Final benchmark report, updated README and report chapters',
+        'Record a demo video; draft a conference-style paper',
+      ], deliverable: 'Final evaluation report and Phase 2 presentation', metric: 'all 7 report objectives measured' },
+  ],
+  phase2Targets: [
+    ['Deployment', 'Local machine only', 'Public HTTPS URL with login'],
+    ['Report objectives', '6 met, O7 partial', 'All 7 measured'],
+    ['Real messaging channels', 'Not tested', '3 platform pipelines ≥ 95%'],
+    ['Rotation / true crop', 'Not supported', '≥ 90% at ±2°, 10% crop'],
+    ['Training images', '334 (one camera source)', '5,000+ multi-camera'],
+    ['Edge hardware', 'Not measured', 'Raspberry Pi 4 timings'],
+    ['Access control & audit', 'Single API key', 'Roles + audit log'],
+  ],
+  phase2Side: [
+    ['Stretch goal', 'Keyed, dithered coefficient-pair selection to blur the QIM fingerprint — measured by how far our own detector’s AUC drops.'],
+    ['Why it fits in a month', 'Every week extends code that already exists: the Dockerfile and CI, the attack simulator, the benchmark harness and both trainers.'],
+    ['Risk & fallback', 'If the registration template slips, Week 3 falls back to exhaustive small-angle search at decode time; Week 4 is unaffected.'],
+    ['Outcome', 'A deployed, authenticated system tested on real-world channels — TRL 6.'],
+  ],
   roadmap: [
-    { when: '0–3 months', name: 'Phase 1 · Deploy & harden', items: [
-      ['Cloud deployment', 'Container is already built and health-checked in CI. Ship it behind HTTPS on a managed platform with API-key auth enabled.'],
-      ['Accounts, roles & audit trail', 'Operator and Analyst roles, per-user job history, and a tamper-evident log of every embed and screening request.'],
-      ['Channel-aware auto profile', 'Simulate WhatsApp / Telegram / e-mail re-encoding pipelines and pick the lightest profile that survives the chosen channel.'],
-      ['Scale training to ALASKA2', 'Retrain the decision engine and detector on 80k+ multi-camera images for better generalization.'],
-      ['Edge benchmark', 'Measure on Raspberry Pi / ARM and publish timings for field deployment.'],
-    ]},
-    { when: '3–9 months', name: 'Phase 2 · Resilience & reach', items: [
-      ['Geometric resilience', 'Registration template so rotated, truly cropped or re-framed images still decode.'],
-      ['Low-detectability mode', 'STC-based embedding with a learned distortion cost to defeat targeted steganalysis.'],
-      ['Colour & chroma pipeline', 'Model chroma subsampling and use colour channels for capacity.'],
+    { when: '3–6 months', name: 'Research upgrades', items: [
+      ['Low-detectability embedding', 'Syndrome-trellis codes (STC) with a learned distortion cost, so even targeted detectors cannot spot AIDE images.'],
+      ['Full ALASKA2 training', 'Scale from the Phase 2 subset to all 80k+ images for production-grade generalization.'],
       ['Video & audio carriers', 'Extend the adaptive engine to video frames (temporal redundancy for ECC) and audio spectrograms.'],
-      ['Offline Android field app', 'CPU-only engine packaged for phones: embed and recover without network access.'],
+      ['Offline Android field app', 'CPU-only engine packaged for phones: embed and recover with no network.'],
     ]},
-    { when: '9–18 months', name: 'Phase 3 · Platform & intelligence', items: [
+    { when: '6–12 months', name: 'Platform & integration', items: [
       ['Deep detector ensemble', 'Add SRNet-class CNN steganalysers next to the explainable detectors, with calibrated fusion.'],
       ['SOC / SIEM integration', 'Webhooks and connectors (Splunk, ELK) for bulk screening at ports, borders and mail gateways.'],
       ['Hardware-backed keys', 'HSM / secure-enclave key storage, key rotation and per-mission keys.'],
+    ]},
+    { when: '1–2 years', name: 'Intelligence & field use', items: [
       ['Adversarial co-training', 'Train embedder and detector against each other so each improves the other.'],
       ['Provenance & watermarking', 'Robust, keyed ownership and authenticity marks for media in the deepfake era.'],
+      ['Field trials → TRL 7', 'Pilot with an operational user, under governance, to demonstrate the system in its real environment.'],
     ]},
   ],
   domains: [
@@ -1647,7 +1744,7 @@ function renderVision() {
   if (visionRendered) return;
   visionRendered = true;
   $('trlBar').innerHTML = [1,2,3,4,5,6,7,8,9].map(n =>
-    `<div class="${n <= 5 ? 'now' : n <= 7 ? 'next' : ''}" title="Technology Readiness Level ${n}">TRL ${n}</div>`).join('');
+    `<div class="${n <= 5 ? 'now' : n === 6 ? 'p2now' : n === 7 ? 'next' : ''}" title="Technology Readiness Level ${n}">${n === 6 ? 'TRL 6 · P2' : 'TRL ' + n}</div>`).join('');
 
   const kpi = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
   const stripStatic = (rec) => kpi(rec, 'mean recovery · robust · 16 attacks × 30 covers') +
@@ -1679,11 +1776,22 @@ function renderVision() {
       <div class="orow"><b>Today:</b> ${o.now}</div>
       <div class="orow"><b>Path forward:</b> ${o.path}</div></div>`).join('');
 
-  $('roadmap').innerHTML = VISION.roadmap.map(ph => `<div class="phase">
+  $('p2Weeks').innerHTML = VISION.phase2.map((w, i) => `<div class="week">
+      <div class="wn"><div class="wnum">W${i + 1}</div><div><div class="wdays">${w.days}</div><div class="wtitle">${w.title}</div></div></div>
+      <ul>${w.tasks.map(t => `<li>${t}</li>`).join('')}</ul>
+      <div class="wbox"><div class="wlab">Deliverable</div><div class="wdel">${w.deliverable}</div>
+      <div class="wlab">Target</div><div class="wmet">${w.metric}</div></div></div>`).join('');
+  $('p2Targets').innerHTML = '<tr><th>Area</th><th>Today</th><th>End of Phase 2</th></tr>' +
+    VISION.phase2Targets.map(([a, b, c]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`).join('');
+  $('p2Side').innerHTML = VISION.phase2Side.map(([k, v]) => `<div class="row-i"><b>${k}.</b> ${v}</div>`).join('');
+
+  $('roadmap').innerHTML = VISION.roadmap.map(ph => `<div class="phase horizon">
       <div class="pbar"></div><div class="pwhen">${ph.when}</div><div class="pname">${ph.name}</div>
       ${ph.items.map(([t, d]) => `<div class="ritem"><div class="rt"><span>${t}</span><span>›</span></div><div class="rd">${d}</div></div>`).join('')}
     </div>`).join('');
   document.querySelectorAll('#roadmap .ritem').forEach(el => el.addEventListener('click', () => el.classList.toggle('open')));
+  $('btnJumpP2').addEventListener('click', () => $('secP2').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  $('btnJumpLT').addEventListener('click', () => $('secLT').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 
   $('domainGrid').innerHTML = VISION.domains.map(([t, d, ico]) => `<div class="domain">
       <div class="dico"><svg class="icon" viewBox="0 0 24 24">${ico}</svg></div><div class="dt">${t}</div><div class="dd">${d}</div></div>`).join('');
