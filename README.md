@@ -21,6 +21,11 @@ benchmark`, the test suite) on real BOSSbase photographs. The README is
 explicit about where the project still falls short. See [Known
 limitations](#known-limitations-and-future-work) before citing a number.
 
+**Live deployment:** https://aide-l64i.onrender.com — open *Live Demo* and
+click *Run full mission*. It runs on Render's free plan: the first visit
+after 15 idle minutes takes about a minute to wake, and a full mission is
+slower than on a laptop.
+
 ## What's new in 0.2
 
 | Area | AIDE 0.1 | AIDE 0.2 |

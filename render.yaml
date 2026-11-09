@@ -12,6 +12,16 @@ services:
       # The free plan has 512 MB of RAM; one worker peaks at ~300 MB.
       - key: WEB_CONCURRENCY
         value: "1"
+      # The free plan has a fraction of one CPU: run the numeric libraries
+      # single-threaded instead of oversubscribing it.
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: AIDE_CV_THREADS
+        value: "1"
       # Gates the versioned /api/v1 endpoints; the console stays open.
       # Render generates the value; read it under the service's Environment tab.
       - key: AIDE_API_KEY

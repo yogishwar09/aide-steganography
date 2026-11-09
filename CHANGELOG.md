@@ -7,6 +7,10 @@
   worker, `/healthz` health check, a generated `AIDE_API_KEY` and
   auto-deploy on push. gunicorn's worker count now comes from
   `WEB_CONCURRENCY` (default 2 in the image).
+- Live at https://aide-l64i.onrender.com. On the free plan's fractional CPU
+  the numeric libraries run single-threaded (`OMP_NUM_THREADS`,
+  `OPENBLAS_NUM_THREADS`, `MKL_NUM_THREADS`, and `AIDE_CV_THREADS` for
+  OpenCV).
 - **Hugging Face Spaces deploy** (`scripts/deploy_space.py`, `make deploy`):
   creates a Docker Space, uploads only what the image needs, and stores a
   generated `AIDE_API_KEY` as a Space secret.
