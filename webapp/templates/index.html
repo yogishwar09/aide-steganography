@@ -297,6 +297,99 @@
 
   .donut-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 
+
+  /* ---------- Live Demo ---------- */
+  .demo-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; }
+  .demo-hero .eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-2); font-weight: 700; }
+  .demo-hero h3 { font-size: 1.55rem; line-height: 1.25; margin: 8px 0 10px; letter-spacing: -0.02em; }
+  .demo-hero p { color: var(--text-dim); font-size: 0.9rem; margin: 0 0 18px; max-width: 560px; }
+  .demo-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .demo-tag { font-family: var(--mono); font-size: 0.72rem; padding: 4px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); }
+  .cover-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .cover-tile { position: relative; border-radius: 9px; overflow: hidden; border: 2px solid var(--border-soft); cursor: pointer; aspect-ratio: 1; background: #05070a; transition: border-color 0.15s, transform 0.15s; }
+  .cover-tile:hover { transform: translateY(-2px); }
+  .cover-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cover-tile.active { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+  .cover-tile .cap { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.64rem; padding: 14px 6px 4px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,0.85)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; margin: 0; padding: 7px 8px; font-size: 0.78rem; background: transparent; color: var(--text-dim); box-shadow: none; border-radius: 6px; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .seg button:hover { filter: none; color: var(--text); }
+  .seg-hint { font-size: 0.74rem; color: var(--text-faint); margin-top: 6px; min-height: 1.2em; }
+  .demo-controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  #btnRunDemo { width: 100%; justify-content: center; padding: 14px; font-size: 0.95rem; margin-top: 20px; }
+  details.demo-params summary { cursor: pointer; font-size: 0.78rem; color: var(--text-dim); margin-top: 16px; user-select: none; }
+  details.demo-params textarea { min-height: 70px; }
+
+  .pipeline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; position: relative; }
+  .pstage { position: relative; padding: 0 10px; text-align: center; }
+  .pstage::before { content: ""; position: absolute; top: 21px; left: -50%; width: 100%; height: 2px; background: var(--border); z-index: 0; transition: background 0.4s; }
+  .pstage:first-child::before { display: none; }
+  .pstage.done::before, .pstage.running::before { background: var(--accent); }
+  .pstage .pdot { position: relative; z-index: 1; width: 44px; height: 44px; margin: 0 auto; border-radius: 50%; background: var(--panel-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-faint); transition: all 0.25s; }
+  .pstage .pdot svg { width: 19px; height: 19px; }
+  .pstage.running .pdot { border-color: var(--accent); color: var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+  .pstage.done .pdot { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pstage.failed .pdot { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .pstage .ptitle { font-size: 0.82rem; font-weight: 600; margin-top: 10px; }
+  .pstage .psub { font-size: 0.7rem; color: var(--text-faint); margin-top: 2px; }
+  .pstage .ptime { font-family: var(--mono); font-size: 0.72rem; color: var(--accent-2); margin-top: 4px; min-height: 1.1em; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(94,106,210,0.45); } 50% { box-shadow: 0 0 0 9px rgba(94,106,210,0); } }
+
+  .scoreboard { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center; }
+  .ring { position: relative; width: 200px; height: 200px; margin: 0 auto; }
+  .ring svg { transform: rotate(-90deg); width: 200px; height: 200px; }
+  .ring .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .ring-num { font-family: var(--mono); font-size: 2.3rem; font-weight: 800; letter-spacing: -0.03em; }
+  .ring .ring-cap { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); margin-top: 2px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .kpi { background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 16px 18px; }
+  .kpi .v { font-family: var(--mono); font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .l { font-size: 0.72rem; color: var(--text-faint); margin-top: 4px; }
+  .kpi .v.ok { color: var(--ok); } .kpi .v.bad { color: var(--danger); }
+
+  .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .trio .imgbox, .duo .imgbox { min-height: 220px; }
+  .trio .imgbox img, .duo .imgbox img { max-height: 340px; }
+  .duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 22px; align-items: start; }
+
+  .gauntlet { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  #page-demo .card { scroll-margin-top: 96px; }
+  .gtile { border: 1px solid var(--border-soft); border-radius: 9px; padding: 12px 14px; background: var(--panel-2); opacity: 0.35; transform: scale(0.97); transition: opacity 0.25s, transform 0.25s, border-color 0.25s; }
+  .gtile.shown { opacity: 1; transform: none; }
+  .gtile.pass { border-color: rgba(52,211,153,0.4); }
+  .gtile.fail { border-color: rgba(242,73,94,0.5); background: rgba(242,73,94,0.06); }
+  .gtile .gtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .gtile .gname { font-size: 0.84rem; font-weight: 600; }
+  .gtile .gico { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 800; color: #0c0d11; background: var(--border); }
+  .gtile.pass .gico { background: var(--ok); } .gtile.fail .gico { background: var(--danger); color: #fff; }
+  .gtile .gmeta { font-family: var(--mono); font-size: 0.68rem; color: var(--text-faint); margin-top: 6px; line-height: 1.5; }
+  .gtile .gcat { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-2); margin-top: 2px; }
+
+  .typed { font-family: var(--mono); font-size: 0.92rem; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .typed .caret { display: inline-block; width: 8px; height: 1.05em; background: var(--accent-2); vertical-align: text-bottom; animation: blink 0.9s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .checklist { list-style: none; padding: 0; margin: 16px 0 0; font-size: 0.84rem; }
+  .checklist li { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; color: var(--text-dim); }
+  .checklist li b { color: var(--text); font-weight: 600; }
+  .checklist .ck { color: var(--ok); font-weight: 800; } .checklist .cx { color: var(--danger); font-weight: 800; }
+
+  .analyst-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .analyst-card { background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 18px; display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: center; }
+  .analyst-card img { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
+  .analyst-card .who { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 8px; }
+  .analyst-card .verdict { padding: 7px 14px; font-size: 0.85rem; }
+  .analyst-card .prob { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); margin-top: 10px; }
+
+  @media (max-width: 1100px) {
+    .demo-hero, .scoreboard, .duo, .analyst-grid { grid-template-columns: 1fr; }
+    .trio { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: repeat(3, 1fr); row-gap: 22px; }
+    .pstage:nth-child(4)::before { display: none; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .gauntlet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
   @media (max-width: 900px) {
     .sidebar { width: 68px; }
     .brand-text, .nav-item span.label, .nav-section-label, .sidebar-footer .status-pill span { display: none; }
@@ -326,7 +419,11 @@
 
     <div class="nav-section-label">Workspace</div>
     <nav class="nav-list">
-      <div class="nav-item active" data-page="operator" data-title="Operator — Secure Communication" data-desc="Embed, attack, and recover encrypted messages through cover images.">
+      <div class="nav-item active" data-page="demo" data-title="Live Demo — End-to-End Mission" data-desc="One click: encrypt, embed, survive a hostile channel, recover, and screen as an analyst.">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        <span class="label">Live Demo</span>
+      </div>
+      <div class="nav-item" data-page="operator" data-title="Operator — Secure Communication" data-desc="Embed, attack, and recover encrypted messages through cover images.">
         <svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
         <span class="label">Operator</span>
       </div>
@@ -341,22 +438,119 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="status-pill"><span class="status-dot"></span><span>Local · offline-capable</span></div>
+      <div class="status-pill" id="healthPill"><span class="status-dot"></span><span id="healthText">Local · offline-capable</span></div>
     </div>
   </aside>
 
   <div class="main-area">
     <header class="topbar">
       <div>
-        <h1 id="pageTitle">Operator — Secure Communication</h1>
-        <div class="desc" id="pageDesc">Embed, attack, and recover encrypted messages through cover images.</div>
+        <h1 id="pageTitle">Live Demo — End-to-End Mission</h1>
+        <div class="desc" id="pageDesc">One click: encrypt, embed, survive a hostile channel, recover, and screen as an analyst.</div>
       </div>
     </header>
 
     <div class="content-scroll">
 
+      <!-- ============ LIVE DEMO PAGE ============ -->
+      <div class="page active" id="page-demo">
+        <div class="card demo-hero">
+          <div>
+            <div class="eyebrow">Adaptive Intelligent Dynamic Embedding</div>
+            <h3>Hide an encrypted order in a photo, push it through a hostile channel, and get every byte back.</h3>
+            <p>This run uses the real engine end to end — the same code paths as the CLI and REST API. Nothing on this page is pre-recorded: every number is measured live on this machine.</p>
+            <div class="demo-tags">
+              <span class="demo-tag">AES-256-GCM</span><span class="demo-tag">scrypt KDF</span><span class="demo-tag">Reed-Solomon + GMD</span>
+              <span class="demo-tag">learned block policy</span><span class="demo-tag">keyed blind layout</span><span class="demo-tag">SPA · RS · ML steganalysis</span>
+            </div>
+          </div>
+          <div>
+            <label>Cover image</label>
+            <div class="cover-picker" id="demoCovers"></div>
+            <div class="demo-controls-row">
+              <div>
+                <label>Robustness profile</label>
+                <div class="seg" id="demoProfile">
+                  <button data-v="quality">Quality</button><button data-v="balanced">Balanced</button><button data-v="robust" class="active">Robust</button><button data-v="fortress">Fortress</button>
+                </div>
+                <div class="seg-hint" id="demoProfileHint"></div>
+              </div>
+              <div>
+                <label>Delivery mode</label>
+                <div class="seg" id="demoMode">
+                  <button data-v="blind" class="active">Blind</button><button data-v="sidecar">Sidecar</button>
+                </div>
+                <div class="seg-hint" id="demoModeHint"></div>
+              </div>
+            </div>
+            <details class="demo-params">
+              <summary>Mission parameters (message &amp; shared secret)</summary>
+              <label>Secret message</label>
+              <textarea id="demoMessage">CLASSIFIED SITREP: Convoy Alpha departs staging area 0600Z, route Bravo-7. Escort confirmed, rendezvous at checkpoint Delta.</textarea>
+              <label>Shared secret</label>
+              <input type="password" id="demoSecret" value="defence-shared-secret-2026">
+            </details>
+            <button id="btnRunDemo"><svg class="icon" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg>Run full mission</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Mission pipeline</h2>
+          <div class="pipeline" id="demoPipeline">
+            <div class="pstage" data-stage="encrypt"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><div class="ptitle">Encrypt</div><div class="psub">AES-256-GCM · scrypt</div><div class="ptime"></div></div>
+            <div class="pstage" data-stage="encode"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="2"/></svg></div><div class="ptitle">Error-correct</div><div class="psub">Reed-Solomon + interleave</div><div class="ptime"></div></div>
+            <div class="pstage" data-stage="embed"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="ptitle">Adaptive embed</div><div class="psub">learned block policy</div><div class="ptime"></div></div>
+            <div class="pstage" data-stage="attack"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div><div class="ptitle">Hostile channel</div><div class="psub">16 attack scenarios</div><div class="ptime"></div></div>
+            <div class="pstage" data-stage="recover"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></div><div class="ptitle">Recover</div><div class="psub">GMD decode + verify</div><div class="ptime"></div></div>
+            <div class="pstage" data-stage="analyst"><div class="pdot"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="ptitle">Analyst screen</div><div class="psub">SPA · RS · ML</div><div class="ptime"></div></div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="demoScoreCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg> Mission scoreboard</h2>
+          <div class="scoreboard">
+            <div class="ring">
+              <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="var(--panel-3)" stroke-width="14"/><circle id="demoRingArc" cx="100" cy="100" r="86" fill="none" stroke="var(--ok)" stroke-width="14" stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="540.35" style="transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)"/></svg>
+              <div class="ring-label"><div class="ring-num" id="demoRingNum">0/0</div><div class="ring-cap">attacks survived</div></div>
+            </div>
+            <div class="kpis" id="demoKpis"></div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="demoImperceptCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Imperceptibility — can you spot the message?</h2>
+          <div class="trio">
+            <div><div class="imgbox" id="demoCoverBox"></div><div class="imgcaption">Original cover</div></div>
+            <div><div class="imgbox" id="demoStegoBox"></div><div class="imgcaption">Stego — carries the encrypted message</div></div>
+            <div><div class="imgbox" id="demoDiffBox"></div><div class="imgcaption">|cover − stego|, amplified — where pixels actually changed</div></div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="demoGauntletCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Attack gauntlet — recovery after each interception</h2>
+          <div class="gauntlet" id="demoGauntlet"></div>
+        </div>
+
+        <div class="card hidden" id="demoRecoverCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> Receiver — recovery through a hostile channel</h2>
+          <div class="duo">
+            <div><div class="imgbox" id="demoAttackedBox"></div><div class="imgcaption" id="demoAttackedCap"></div></div>
+            <div>
+              <div class="msgbox" style="position:relative"><div class="typed" id="demoTyped"></div></div>
+              <ul class="checklist" id="demoChecklist"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="demoAnalystCard">
+          <h2><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyst side — blind screening, no secret</h2>
+          <div class="analyst-grid" id="demoAnalyst"></div>
+          <div class="imgcaption" style="text-align:left;margin-top:14px">The same toolkit defends the other direction: AIDE's own detector screens intercepted media with no key and no sidecar. A clean cover must pass; a stego image must be flagged.</div>
+        </div>
+      </div>
+
       <!-- ============ OPERATOR PAGE ============ -->
-      <div class="page active" id="page-operator">
+      <div class="page" id="page-operator">
         <div class="disclaimer">
           <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           <div>AES-256-GCM + Reed-Solomon ECC + adaptive LSB/DCT/DWT embedding. See <code>README.md</code> for what's measured to actually survive which attacks.</div>
@@ -1009,6 +1203,221 @@ async function loadModelInsights() {
     $('statGrid').innerHTML = `<div style="color:var(--danger);font-size:0.85rem">Failed to load model info: ${err}</div>`;
   }
 }
+
+// ---------- Live Demo ----------
+const demo = { coverId: null, covers: [], profile: 'robust', mode: 'blind', running: false };
+const PROFILE_HINT = {
+  quality: 'Highest image quality, light protection',
+  balanced: 'Default — strong quality/robustness balance',
+  robust: 'Survives σ=20 noise and JPEG Q30 (report O4)',
+  fortress: 'Maximum protection, visible cost in PSNR',
+};
+const MODE_HINT = {
+  blind: 'Receiver needs only the image + secret',
+  sidecar: 'Receiver also gets an embedding-map file',
+};
+const SCENARIO_INFO = {
+  none: ['Clean channel', 'baseline'],
+  compression: ['JPEG', 'compression'], gaussian_noise: ['Gaussian noise', 'noise'],
+  salt_pepper: ['Salt & pepper', 'noise'], median_filter: ['Median filter', 'filtering'],
+  gaussian_filter: ['Gaussian blur', 'filtering'], scaling: ['Rescale', 'geometric'],
+  splicing: ['Splice', 'tampering'], cropping: ['Crop', 'tampering'],
+};
+function escapeHtml(t) { return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function scenarioLabel(sc) {
+  if (!sc.attack) return SCENARIO_INFO.none;
+  const [name, cat] = SCENARIO_INFO[sc.attack] || [sc.attack, 'attack'];
+  const p = sc.params || {};
+  const detail = p.quality != null ? `Q${p.quality}` : p.sigma != null && sc.attack === 'gaussian_noise' ? `σ=${p.sigma}`
+    : p.amount != null ? `${+(p.amount * 100).toFixed(1)}%` : p.factor != null ? `${p.factor}×`
+    : p.fraction != null ? `${+(p.fraction * 100).toFixed(1)}%` : p.ksize != null ? `${p.ksize}×${p.ksize}` : '';
+  return [detail ? `${name} ${detail}` : name, cat];
+}
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `${path} failed (${res.status})`);
+  return data;
+}
+const postJson = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+function b64ToBlob(b64) { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: 'image/png' }); }
+
+function wireSeg(id, hintId, hints, key) {
+  const seg = $(id);
+  const sync = () => { $(hintId).textContent = hints[demo[key]]; };
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    if (demo.running) return;
+    seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    demo[key] = b.dataset.v; sync();
+  }));
+  sync();
+}
+wireSeg('demoProfile', 'demoProfileHint', PROFILE_HINT, 'profile');
+wireSeg('demoMode', 'demoModeHint', MODE_HINT, 'mode');
+
+api('/api/demo/covers').then(covers => {
+  demo.covers = covers;
+  demo.coverId = (covers.find(c => c.id === 'astronaut') || covers[0] || {}).id;
+  $('demoCovers').innerHTML = covers.map(c =>
+    `<div class="cover-tile${c.id === demo.coverId ? ' active' : ''}" data-id="${c.id}" title="${escapeHtml(c.label)} · ${c.width}×${c.height}">
+       <img src="${c.url}" alt=""><div class="cap">${escapeHtml(c.label)}</div></div>`).join('');
+  $('demoCovers').querySelectorAll('.cover-tile').forEach(t => t.addEventListener('click', () => {
+    if (demo.running) return;
+    demo.coverId = t.dataset.id;
+    $('demoCovers').querySelectorAll('.cover-tile').forEach(x => x.classList.toggle('active', x === t));
+  }));
+}).catch(err => { $('demoCovers').innerHTML = `<div class="imgcaption">Demo covers unavailable: ${escapeHtml(err.message)}</div>`; });
+
+function stage(key, cls, time) {
+  const el = document.querySelector(`.pstage[data-stage="${key}"]`);
+  el.classList.remove('running', 'done', 'failed');
+  if (cls) el.classList.add(cls);
+  if (time !== undefined) el.querySelector('.ptime').textContent = time;
+}
+function resetDemo() {
+  document.querySelectorAll('.pstage').forEach(el => { el.classList.remove('running', 'done', 'failed'); el.querySelector('.ptime').textContent = ''; });
+  ['demoScoreCard', 'demoImperceptCard', 'demoGauntletCard', 'demoRecoverCard', 'demoAnalystCard'].forEach(id => $(id).classList.add('hidden'));
+  $('demoRingArc').style.strokeDashoffset = 540.35;
+}
+const fmtMs = (ms) => ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
+
+async function typeOut(el, text) {
+  el.innerHTML = '<span class="txt"></span><span class="caret"></span>';
+  const span = el.querySelector('.txt');
+  const step = Math.max(1, Math.ceil(text.length / 90));
+  for (let i = 0; i <= text.length; i += step) { span.textContent = text.slice(0, i); await sleep(14); }
+  span.textContent = text;
+  el.querySelector('.caret').remove();
+}
+
+function analystCard(who, imgSrc, d) {
+  const label = { clean: 'Clean', suspicious: 'Suspicious', likely_steganographic: 'Hidden data detected' }[d.verdict] || d.verdict;
+  const ml = d.ml ? `ML stego probability ${(d.ml.probability * 100).toFixed(2)}%` : 'ML detector not trained';
+  return `<div class="analyst-card"><img src="${imgSrc}" alt="">
+    <div><div class="who">${who}</div><div class="verdict ${d.verdict}">${label}</div>
+    <div class="prob">${ml}<br>SPA rate ${(d.spa_rate ?? 0).toFixed(3)} · RS rate ${(d.rs_rate ?? 0).toFixed(3)}</div></div></div>`;
+}
+
+$('btnRunDemo').addEventListener('click', async () => {
+  if (demo.running) return;
+  const cover = demo.covers.find(c => c.id === demo.coverId);
+  const message = $('demoMessage').value, secret = $('demoSecret').value;
+  if (!cover || !message || !secret) { toast('err', 'Pick a cover and set a message and shared secret.'); return; }
+  demo.running = true;
+  const btn = $('btnRunDemo'), btnHtml = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Mission running…';
+  resetDemo();
+  const t0 = performance.now();
+  let current = 'encrypt';
+  try {
+    // 1-3: encrypt, error-correct, embed (one server call: the real pipeline)
+    const coverBlob = await (await fetch(cover.url)).blob();
+    const coverDataUrl = await fileToDataUrl(coverBlob);
+    stage('encrypt', 'running'); stage('encode', 'running'); stage('embed', 'running');
+    const form = new FormData();
+    form.append('cover', coverBlob, cover.id + '.png'); form.append('message', message); form.append('secret', secret);
+    form.append('profile', demo.profile); form.append('embed_mode', demo.mode);
+    let t = performance.now();
+    current = 'embed';
+    const emb = await api('/api/embed', { method: 'POST', body: form });
+    const embedMs = performance.now() - t;
+    stage('encrypt', 'done', '✓'); await sleep(160);
+    stage('encode', 'done', `${emb.payload_bytes} B coded`); await sleep(160);
+    stage('embed', 'done', fmtMs(embedMs));
+    const stegoUrl = 'data:image/png;base64,' + emb.stego_b64;
+
+    showImage($('demoCoverBox'), coverDataUrl);
+    showImage($('demoStegoBox'), stegoUrl);
+    $('demoDiffBox').innerHTML = '<div class="placeholder"><span class="spinner"></span></div>';
+    $('demoImperceptCard').classList.remove('hidden');
+    postJson('/api/visualize/diff', { cover_b64: dataUrlToB64(coverDataUrl), stego_b64: emb.stego_b64 })
+      .then(d => showImage($('demoDiffBox'), 'data:image/png;base64,' + d.heatmap_b64))
+      .catch(() => { $('demoDiffBox').innerHTML = '<div class="placeholder">Difference view unavailable</div>'; });
+
+    // 4: attack gauntlet
+    current = 'attack';
+    stage('attack', 'running');
+    t = performance.now();
+    const sweep = await postJson('/api/sweep', { image_b64: emb.stego_b64, sidecar: emb.sidecar, secret, embed_mode: demo.mode });
+    const sweepMs = performance.now() - t;
+    $('demoGauntlet').innerHTML = sweep.results.map(r => {
+      const [name, cat] = scenarioLabel(r);
+      const meta = r.success
+        ? `recovered · ${r.corrected_bytes ?? 0} B corrected<br>${r.psnr_vs_stego != null ? `channel PSNR ${r.psnr_vs_stego} dB · ` : ''}${r.ms} ms`
+        : `lost · BER ${(r.ber * 100).toFixed(1)}%<br>${r.ms} ms`;
+      return `<div class="gtile ${r.success ? 'pass' : 'fail'}"><div class="gtop"><div><div class="gname">${escapeHtml(name)}</div><div class="gcat">${cat}</div></div>
+        <div class="gico">${r.success ? '✓' : '✕'}</div></div><div class="gmeta">${meta}</div></div>`;
+    }).join('');
+    $('demoGauntletCard').classList.remove('hidden');
+    const tiles = [...$('demoGauntlet').children];
+    for (const tile of tiles) { tile.classList.add('shown'); await sleep(70); }
+    stage('attack', sweep.passed === sweep.total ? 'done' : 'failed', `${sweep.passed}/${sweep.total} · ${fmtMs(sweepMs)}`);
+
+    // 5: receiver through a chained hostile channel
+    current = 'recover';
+    stage('recover', 'running');
+    let img = emb.stego_b64;
+    for (const [type, params] of [['gaussian_noise', { sigma: 12, seed: 7 }], ['compression', { quality: 60 }]]) {
+      img = (await postJson('/api/attack', { stego_b64: img, type, params })).attacked_b64;
+    }
+    t = performance.now();
+    const rec = await postJson('/api/recover', { image_b64: img, sidecar: emb.sidecar, secret, embed_mode: demo.mode });
+    const recMs = performance.now() - t;
+    const exact = rec.success && rec.message === message;
+    showImage($('demoAttackedBox'), 'data:image/png;base64,' + img);
+    $('demoAttackedCap').textContent = 'What the receiver got: noisy link (σ=12) + JPEG re-compression (Q60)';
+    $('demoRecoverCard').classList.remove('hidden');
+    const ck = (ok, html) => `<li><span class="${ok ? 'ck' : 'cx'}">${ok ? '✓' : '✕'}</span><span>${html}</span></li>`;
+    $('demoChecklist').innerHTML = '';
+    if (rec.success) await typeOut($('demoTyped'), rec.message);
+    else $('demoTyped').innerHTML = `<span style="color:var(--danger)">Recovery failed: ${escapeHtml(rec.error || 'unknown error')}</span>`;
+    $('demoChecklist').innerHTML =
+      ck(rec.success, `<b>AES-GCM authentication tag</b> ${rec.success ? 'verified — message is authentic and untampered' : 'could not be verified'}`) +
+      ck(exact, `<b>Byte-for-byte match</b> with the message that was sent`) +
+      ck(rec.success, `<b>Reed-Solomon</b> repaired ${rec.corrected_bytes ?? 0} corrupted bytes${rec.gmd_codewords ? ` · ${rec.gmd_codewords} codewords via GMD` : ''}`) +
+      ck(true, `<b>${demo.mode === 'blind' ? 'Blind mode' : 'Sidecar mode'}</b> · profile <b>${escapeHtml(rec.profile || demo.profile)}</b> · decoded in ${fmtMs(recMs)}`);
+    stage('recover', exact ? 'done' : 'failed', exact ? fmtMs(recMs) : 'lost');
+
+    // 6: analyst screening of cover vs stego
+    current = 'analyst';
+    stage('analyst', 'running');
+    const detect = (blob) => { const f = new FormData(); f.append('image', blob, 'x.png'); return api('/api/detect', { method: 'POST', body: f }); };
+    const [dCover, dStego] = await Promise.all([detect(coverBlob), detect(b64ToBlob(emb.stego_b64))]);
+    $('demoAnalyst').innerHTML = analystCard('Clean cover', coverDataUrl, dCover) + analystCard('Stego image', stegoUrl, dStego);
+    $('demoAnalystCard').classList.remove('hidden');
+    const analystOk = dCover.verdict === 'clean' && dStego.verdict !== 'clean';
+    stage('analyst', analystOk ? 'done' : 'failed', analystOk ? 'both correct' : 'check verdicts');
+
+    // scoreboard
+    const totalMs = performance.now() - t0;
+    $('demoScoreCard').classList.remove('hidden');
+    $('demoRingNum').textContent = `${sweep.passed}/${sweep.total}`;
+    $('demoRingArc').style.stroke = sweep.passed === sweep.total ? 'var(--ok)' : sweep.passed / sweep.total >= 0.75 ? 'var(--warn)' : 'var(--danger)';
+    requestAnimationFrame(() => { $('demoRingArc').style.strokeDashoffset = 540.35 * (1 - sweep.passed / sweep.total); });
+    const kpi = (v, l, cls = '') => `<div class="kpi"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
+    $('demoKpis').innerHTML =
+      kpi(`${emb.psnr_db.toFixed(1)} dB`, 'PSNR — cover vs stego') +
+      kpi(emb.ssim.toFixed(3), 'SSIM — structural similarity') +
+      kpi(`${emb.message_bytes} B`, `message · ${emb.capacity_used_pct != null ? emb.capacity_used_pct + '% of capacity' : emb.blocks_used + ' blocks'}`) +
+      kpi(exact ? 'Exact' : 'Lost', 'recovery through noise + JPEG', exact ? 'ok' : 'bad') +
+      kpi(analystOk ? 'Correct' : 'Mixed', 'analyst: cover clean, stego flagged', analystOk ? 'ok' : 'bad') +
+      kpi(fmtMs(totalMs), 'end-to-end, on this CPU');
+    $('demoScoreCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(sweep.passed === sweep.total && exact ? 'ok' : 'info',
+      `Mission complete: ${sweep.passed}/${sweep.total} attacks survived, recovery ${exact ? 'exact' : 'failed'}.`);
+  } catch (err) {
+    stage(current, 'failed', 'error');
+    toast('err', escapeHtml(err.message));
+  } finally {
+    demo.running = false; btn.disabled = false; btn.innerHTML = btnHtml;
+  }
+});
+
+// ---------- Live health in the sidebar ----------
+fetch('/healthz').then(r => r.json()).then(h => {
+  $('healthText').textContent = `v${h.version} · engine ${h.model ? 'trained' : 'fallback'} · detector ${h.detector ? 'ready' : 'off'}`;
+}).catch(() => { $('healthText').textContent = 'Server unreachable'; });
 </script>
 </body>
 </html>

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Web console
+- **Live Demo page** (now the console's landing page): one click runs the
+  whole mission on a bundled cover — encrypt, Reed-Solomon encode, adaptive
+  embed, the 16-scenario attack gauntlet, recovery through a chained
+  noise + JPEG channel, and analyst screening of cover vs stego — then shows
+  a scoreboard (attacks survived, PSNR/SSIM, recovery, detector verdicts,
+  end-to-end time). Profile and blind/sidecar mode are selectable, and every
+  number is measured live.
+- `GET /api/v1/demo/covers` serves the bundled demo covers
+  (`webapp/static/demo/`); a test guarantees each one survives every
+  scenario under `robust`/blind.
+- Sidebar status pill reports live engine/detector state from `/healthz`.
+
 ## 0.2.0 — 2026-10-11
 
 Everything below is measured on real BOSSbase covers (`aide benchmark`,

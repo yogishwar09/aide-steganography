@@ -52,6 +52,13 @@ from aide.profiles import DEFAULT_PROFILE, PROFILES  # noqa: E402
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = Path(os.environ.get("AIDE_MODEL_DIR", REPO_ROOT / "data" / "models"))
 BENCHMARK_JSON = Path(os.environ.get("AIDE_BENCHMARK_JSON", REPO_ROOT / "reports" / "benchmark" / "benchmark.json"))
+DEMO_DIR = Path(__file__).resolve().parent / "static" / "demo"
+DEMO_COVER_LABELS = {
+    "astronaut": "Astronaut portrait (colour)",
+    "coffee": "Coffee cup (colour)",
+    "rocket": "Rocket launch (colour)",
+    "bossbase_1022": "BOSSbase #1022 (grayscale)",
+}
 MAX_BATCH = 50
 
 app = Flask(__name__)
@@ -221,6 +228,22 @@ def healthz():
     return jsonify({"status": "ok", "version": __version__,
                     "model": (MODEL_DIR / "weights.json").exists(),
                     "detector": get_detector() is not None})
+
+
+# ---------------------------------------------------------------- demo
+
+@api_route("/demo/covers")
+def api_demo_covers():
+    """Bundled cover images for the console's one-click Live Demo, so a
+    presentation never depends on finding a file on the laptop."""
+    covers = []
+    for path in sorted(DEMO_DIR.glob("*.png")):
+        with Image.open(path) as im:
+            w, h = im.size
+            color = im.mode != "L"
+        covers.append({"id": path.stem, "label": DEMO_COVER_LABELS.get(path.stem, path.stem),
+                       "url": f"/static/demo/{path.name}", "width": w, "height": h, "color": color})
+    return jsonify(covers)
 
 
 # ---------------------------------------------------------------- operator
@@ -669,6 +692,7 @@ def openapi():
             "/api/v1/scenarios": {"get": op("List benchmark attack scenarios")},
             "/api/v1/sweep": {"post": op("Run every attack scenario against one stego image", body={
                 "image_b64": "string", "secret": "string", "sidecar": "string", "embed_mode": "string"})},
+            "/api/v1/demo/covers": {"get": op("Bundled demo cover images")},
             "/api/v1/model-info": {"get": op("Decision-engine and detector parameters")},
             "/api/v1/benchmark": {"get": op("Latest benchmark summary")},
         },

@@ -291,3 +291,20 @@ def test_sweep_runs_every_scenario(client, real_sample_image_path):
     assert data["passed"] >= len(SCENARIOS) - 3
     bad = client.post("/api/sweep", json={"image_b64": embed["stego_b64"], "secret": "wrong"})
     assert bad.status_code == 400
+
+
+def test_demo_covers_survive_the_full_gauntlet(client):
+    """The console's Live Demo runs robust/blind on these bundled covers in
+    front of an audience: every one must be served and pass every scenario."""
+    from aide.benchmark import SCENARIOS
+    covers = client.get("/api/v1/demo/covers").get_json()
+    assert {c["id"] for c in covers} >= {"astronaut", "bossbase_1022"}
+    for cover in covers:
+        raw = client.get(cover["url"]).data
+        embed = client.post("/api/embed", data={
+            "cover": (io.BytesIO(raw), "cover.png"), "message": "Convoy Alpha departs 0600Z, route Bravo-7.",
+            "secret": "k", "profile": "robust", "embed_mode": "blind",
+        }, content_type="multipart/form-data").get_json()
+        sweep = client.post("/api/sweep", json={"image_b64": embed["stego_b64"], "secret": "k",
+                                                "embed_mode": "blind"}).get_json()
+        assert sweep["passed"] == len(SCENARIOS), (cover["id"], sweep["results"])
